@@ -11,9 +11,14 @@ import {
   Trophy,
   RefreshCw,
 } from "lucide-react";
-import { WORDS } from "./data/words";
+import { WORDS, NOMINATIVE_ARTICLE } from "./data/words";
 
-const ARTICLE = { m: "der", f: "die", n: "das" };
+// Grundform-Anzeige nutzt bewusst den unbestimmten Artikel (ein/eine/ein),
+// nicht den bestimmten: der bestimmte Artikel ist zwar in Sprachlernkontexten
+// verbreitet, aber hier sprachlich unpassend (Thema/Rhema setzt Bekanntheit
+// voraus, die eine isolierte Vokabelkarte nicht hat) und irreführend, weil er
+// nur eine von drei möglichen Kasusformen zeigt und Genus/Fall vermischt.
+const ARTICLE = NOMINATIVE_ARTICLE;
 const GENUS_COLOR = { m: "#3B6FD9", f: "#E0538E", n: "#8B5FBF" };
 const GENUS_LABEL = { m: "maskulin", f: "feminin", n: "neutral" };
 
