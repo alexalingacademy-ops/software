@@ -21,7 +21,7 @@ Wortdatenbank (Content, getrennt von UI/Gameplay): [`prototypes/solo/data/words.
 
 ## Content-Modell
 
-- 6 Minimalpaar-Sets (22 Wörter), z. B. *Buch/Tuch/Dach/Tag*, *Schale/Schal/Schnalle* — bewusst nach **Lautung** kuratiert, nicht nach Thema.
+- 6 Minimalpaar-Sets à 13 Wörter (78 Wörter gesamt) — ein Set füllt damit sogar ein 3×3-Board mit Ziehstapel-Puffer allein. Bewusst nach **Lautung** kuratiert, nicht nach Thema.
 - Jedes Wort trägt Genus (Farbcode: m=blau, f=pink, n=violett), ein Lautungs-Set und ein Themenfeld-Tag.
 - Gruppierungssystem ist offen für weitere Taxonomien (aktuell: Lautung, Thema) — neue Gruppierungsart = neuer Eintrag, kein UI-Umbau.
 - Jedes Wort kann mehrere Bildvarianten haben (`images.singular`, aktuell für Set 1 mit echten Fotos befüllt, sonst Platzhalter-Icon); Varianten sorgen für Abwechslung zwischen Boards bzw. Wiederholungsrunden, nicht für Mehrdeutigkeit auf einem einzelnen Board.
@@ -48,16 +48,16 @@ tag--dat-2--anna.mp3       Annas zweite Dativ-Variante zu "Tag"
 
 **Sprecher-Register** (`SPEAKERS` in `data/words.js`, aktuell noch leer): jede Person trägt `id`, `name`, `gender` (m/f) und `herkunft` (Standardaussprache/Dialekt/Region) als Metadaten. Diese Klassifizierung ist die Grundlage für eine spätere Sprecherauswahl (gezielt eine Stimme wählen) oder einen Random-Mix-Modus (zufällige Stimme pro Ansage, für breiteres Hörverständnis-Training).
 
-### Bild-Namenskonvention (analog zur Audio-Konvention, `data/words.js` als `imagePath()` hinterlegt)
+### Bilder: ein Ordner pro Wort (`data/images.js`)
 
 ```
-images/{wortId}-{variante}.{ext}            Singular, z.B. images/buch-a.jpg
-images/{wortId}-plural-{variante}.{ext}      Plural,   z.B. images/buch-plural-a.jpg
+images/{wortId}/*.{jpg,png,webp}            Singular, z.B. images/buch/irgendwas.jpg
+images/{wortId}-plural/*.{jpg,png,webp}      Plural,   z.B. images/buch-plural/irgendwas.jpg
 ```
 
-- **variante**: `a`/`b`/`c` — mehrere Bilder desselben Worts (z. B. rotes/graues Dach = beides "Dach"), analog zu den A/B/C-Varianten im Trainingsmodus. Nicht jedes Wort braucht alle drei.
+- Kein fester Dateiname nötig — `data/images.js` liest per `import.meta.glob` einfach alles ein, was im passenden Ordner liegt (beliebiger Name, beliebige Anzahl). Falsches Bild zugeordnet? Datei aus dem Ordner löschen/verschieben, richtige reinziehen — kein Umbenennen, kein Code anfassen.
 - Bilder liegen unter [`prototypes/solo/images/`](prototypes/solo/images/), auf max. 1000px Kantenlänge verkleinert (JPEG, Qualität 82) — die Originalauflösung von Freepik ist fürs Web unnötig groß.
-- Fehlt eine Bilddatei, zeigt die App automatisch das Platzhalter-Icon — Bilder können also Wort für Wort ergänzt werden. Auswahl-Hilfe: [`prototypes/solo/BILDAUSWAHL-CHECKLISTE.md`](prototypes/solo/BILDAUSWAHL-CHECKLISTE.md).
+- Fehlt für ein Wort der Ordner oder ist er leer, zeigt die App automatisch das Platzhalter-Icon — Bilder können also Wort für Wort ergänzt werden. Auswahl-Hilfe: [`prototypes/solo/BILDAUSWAHL-CHECKLISTE.md`](prototypes/solo/BILDAUSWAHL-CHECKLISTE.md).
 
 ## Spielregeln (Kern-Mechanik)
 

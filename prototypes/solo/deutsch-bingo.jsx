@@ -110,7 +110,10 @@ function generateRound(gridN, avoidSignature) {
 // können Bilder nach und nach ergänzt werden, ohne dass Zellen kaputt aussehen.
 function WordVisual({ word, variantIdx = 0, plural = false, size = 22, iconColor = "#B9B4A6", fill = false }) {
   const [broken, setBroken] = useState(false);
-  const src = plural ? word.images?.plural?.[variantIdx] : word.images?.singular?.[variantIdx];
+  // Modulo über die tatsächliche Bildanzahl statt fixer 3 Slots — ein Wort
+  // kann jetzt beliebig viele (oder auch nur 1) Bild(er) im Ordner haben.
+  const list = plural ? word.images?.plural : word.images?.singular;
+  const src = list && list.length ? list[variantIdx % list.length] : undefined;
 
   useEffect(() => {
     setBroken(false);
@@ -571,7 +574,7 @@ export default function DeutschBingo() {
                       )}
                       {!fill && showWords && (
                         <span style={{ marginTop: 4, fontSize: gridN === 3 ? 13 : 11, fontWeight: 600, color: covered ? "#FFFFFF" : "#23273A", textAlign: "center" }}>
-                          {ARTICLE[word.genus]} {word.word}
+                          {word.noArticle ? word.word : `${ARTICLE[word.genus]} ${word.word}`}
                         </span>
                       )}
                       {!called && (
@@ -808,7 +811,7 @@ export default function DeutschBingo() {
                         <WordVisual word={word} variantIdx={variantIdx} size={22} iconColor="#8A8570" fill={fill} />
                         {!fill && (
                           <span style={{ marginTop: 4, fontSize: 11, fontWeight: 600, textAlign: "center" }}>
-                            {ARTICLE[word.genus]} {word.word}
+                            {word.noArticle ? word.word : `${ARTICLE[word.genus]} ${word.word}`}
                           </span>
                         )}
                         {!fill && (
@@ -832,7 +835,7 @@ export default function DeutschBingo() {
             </p>
             {grouping === "thema" && (
               <p style={{ marginTop: 4, fontSize: 12, color: "#B5473E", maxWidth: 560 }}>
-                Diese 22 Wörter sind nach Lautung ausgewählt, nicht nach Thema — deshalb wirkt die
+                Diese 78 Wörter sind nach Lautung ausgewählt, nicht nach Thema — deshalb wirkt die
                 Themenfeld-Ansicht hier noch fragmentiert (mehrere Themen mit nur einem Wort). Das ist kein
                 Bug, sondern Ergebnis dieses ersten Testsets; mit wachsendem Wortschatz füllen sich die
                 Themenfelder von selbst.
@@ -896,7 +899,7 @@ export default function DeutschBingo() {
                       )}
                       {!fill && showWords && (
                         <span style={{ marginTop: 4, fontSize: 11, fontWeight: 600, textAlign: "center", color: flashed ? "#FFFFFF" : "#23273A" }}>
-                          {ARTICLE[cell.word.genus]} {cell.word.word}
+                          {cell.word.noArticle ? cell.word.word : `${ARTICLE[cell.word.genus]} ${cell.word.word}`}
                         </span>
                       )}
                       {!fill && (
@@ -926,7 +929,7 @@ export default function DeutschBingo() {
                 </div>
                 {matchTarget && (
                   <div style={{ fontSize: 12, opacity: 0.7, marginTop: 6 }}>
-                    {ARTICLE[matchTarget.genus]} {matchTarget.word} · {GENUS_LABEL[matchTarget.genus]}
+                    {matchTarget.noArticle ? matchTarget.word : `${ARTICLE[matchTarget.genus]} ${matchTarget.word}`} · {GENUS_LABEL[matchTarget.genus]}
                   </div>
                 )}
                 {matchTarget && matchAnnouncedText !== matchTarget.word && (
