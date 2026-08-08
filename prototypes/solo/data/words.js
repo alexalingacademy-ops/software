@@ -54,6 +54,33 @@ export function audioFileName(wordId, satzTyp, sprecherId, nummer = 1, ext = "mp
   return `${audioKey(wordId, satzTyp, nummer)}--${sprecherId}.${ext}`;
 }
 
+// ---------------------------------------------------------------------------
+// Bild-Namenskonvention (analog zur Audio-Konvention oben)
+//
+//   images/{wortId}-{variante}.{ext}            Singular
+//   images/{wortId}-plural-{variante}.{ext}      Plural
+//
+// Beispiele: images/buch-a.jpg, images/buch-plural-a.jpg
+//
+// - variante: a/b/c — mehrere Bilder desselben Worts (z. B. rotes/graues
+//   Dach = beides "Dach"), analog zu den A/B/C-Varianten im Trainingsmodus.
+// - Nicht jedes Wort braucht alle drei Varianten oder ein Pluralbild; fehlt
+//   eine Datei, fällt die UI auf das Platzhalter-Icon zurück.
+// ---------------------------------------------------------------------------
+
+export const IMAGE_VARIANTS = ["a", "b", "c"];
+
+export function imagePath(wordId, variant, { plural = false, ext = "jpg" } = {}) {
+  return plural ? `images/${wordId}-plural-${variant}.${ext}` : `images/${wordId}-${variant}.${ext}`;
+}
+
+function buildImages(word) {
+  return {
+    singular: IMAGE_VARIANTS.map((v) => imagePath(word.id, v)),
+    plural: IMAGE_VARIANTS.map((v) => imagePath(word.id, v, { plural: true })),
+  };
+}
+
 // Sprecher-Register: Platzhalter, bis echte Aufnahmen existieren. Genus
 // (m/f) und Herkunft (Standardaussprache/Dialekt/Region) als Metadaten, um
 // später gezielt auswählen zu können oder einen Random-Mix aus mehreren
@@ -76,33 +103,35 @@ function buildSentences(word) {
 }
 
 const RAW_WORDS = [
-  { id: "buch", word: "Buch", genus: "n", set: 1, topic: "Alltagsgegenstände" },
-  { id: "tuch", word: "Tuch", genus: "n", set: 1, topic: "Kleidung" },
-  { id: "dach", word: "Dach", genus: "n", set: 1, topic: "Wohnen" },
-  { id: "tag", word: "Tag", genus: "m", set: 1, topic: "Zeit" },
+  { id: "buch", word: "Buch", plural: "Bücher", genus: "n", set: 1, topic: "Alltagsgegenstände" },
+  { id: "tuch", word: "Tuch", plural: "Tücher", genus: "n", set: 1, topic: "Kleidung" },
+  { id: "dach", word: "Dach", plural: "Dächer", genus: "n", set: 1, topic: "Wohnen" },
+  { id: "tag", word: "Tag", plural: "Tage", genus: "m", set: 1, topic: "Zeit" },
 
-  { id: "schale", word: "Schale", genus: "f", set: 2, topic: "Küche" },
-  { id: "schal", word: "Schal", genus: "m", set: 2, topic: "Kleidung" },
-  { id: "schnalle", word: "Schnalle", genus: "f", set: 2, topic: "Kleidung" },
+  { id: "schale", word: "Schale", plural: "Schalen", genus: "f", set: 2, topic: "Küche" },
+  { id: "schal", word: "Schal", plural: "Schals", genus: "m", set: 2, topic: "Kleidung" },
+  { id: "schnalle", word: "Schnalle", plural: "Schnallen", genus: "f", set: 2, topic: "Kleidung" },
 
-  { id: "nase", word: "Nase", genus: "f", set: 3, topic: "Körper" },
-  { id: "vase", word: "Vase", genus: "f", set: 3, topic: "Wohnen" },
-  { id: "hase", word: "Hase", genus: "m", set: 3, topic: "Tiere" },
+  { id: "nase", word: "Nase", plural: "Nasen", genus: "f", set: 3, topic: "Körper" },
+  { id: "vase", word: "Vase", plural: "Vasen", genus: "f", set: 3, topic: "Wohnen" },
+  { id: "hase", word: "Hase", plural: "Hasen", genus: "m", set: 3, topic: "Tiere" },
 
-  { id: "tasse", word: "Tasse", genus: "f", set: 4, topic: "Küche" },
-  { id: "tanne", word: "Tanne", genus: "f", set: 4, topic: "Natur" },
-  { id: "tante", word: "Tante", genus: "f", set: 4, topic: "Familie" },
-  { id: "tasche", word: "Tasche", genus: "f", set: 4, topic: "Kleidung" },
-  { id: "taste", word: "Taste", genus: "f", set: 4, topic: "Alltagsgegenstände" },
+  { id: "tasse", word: "Tasse", plural: "Tassen", genus: "f", set: 4, topic: "Küche" },
+  { id: "tanne", word: "Tanne", plural: "Tannen", genus: "f", set: 4, topic: "Natur" },
+  { id: "tante", word: "Tante", plural: "Tanten", genus: "f", set: 4, topic: "Familie" },
+  { id: "tasche", word: "Tasche", plural: "Taschen", genus: "f", set: 4, topic: "Kleidung" },
+  { id: "taste", word: "Taste", plural: "Tasten", genus: "f", set: 4, topic: "Alltagsgegenstände" },
 
-  { id: "ratte", word: "Ratte", genus: "f", set: 5, topic: "Tiere" },
-  { id: "watte", word: "Watte", genus: "f", set: 5, topic: "Alltagsgegenstände" },
+  { id: "ratte", word: "Ratte", plural: "Ratten", genus: "f", set: 5, topic: "Tiere" },
+  // Watte ist im Alltag meist ein Massenwort (wie "cotton wool") und kommt
+  // kaum im Plural vor — Form trotzdem hinterlegt, für Konsistenz im Modell.
+  { id: "watte", word: "Watte", plural: "Watten", genus: "f", set: 5, topic: "Alltagsgegenstände" },
 
-  { id: "bett", word: "Bett", genus: "n", set: 6, topic: "Wohnen" },
-  { id: "beet", word: "Beet", genus: "n", set: 6, topic: "Natur" },
-  { id: "brett", word: "Brett", genus: "n", set: 6, topic: "Alltagsgegenstände" },
-  { id: "boot", word: "Boot", genus: "n", set: 6, topic: "Fahrzeuge" },
-  { id: "brot", word: "Brot", genus: "n", set: 6, topic: "Essen" },
+  { id: "bett", word: "Bett", plural: "Betten", genus: "n", set: 6, topic: "Wohnen" },
+  { id: "beet", word: "Beet", plural: "Beete", genus: "n", set: 6, topic: "Natur" },
+  { id: "brett", word: "Brett", plural: "Bretter", genus: "n", set: 6, topic: "Alltagsgegenstände" },
+  { id: "boot", word: "Boot", plural: "Boote", genus: "n", set: 6, topic: "Fahrzeuge" },
+  { id: "brot", word: "Brot", plural: "Brote", genus: "n", set: 6, topic: "Essen" },
 ];
 
-export const WORDS = RAW_WORDS.map((w) => ({ ...w, sentences: buildSentences(w) }));
+export const WORDS = RAW_WORDS.map((w) => ({ ...w, sentences: buildSentences(w), images: buildImages(w) }));

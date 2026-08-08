@@ -10,26 +10,18 @@ gruppiert nach Lautungs-Set. Zum Abhaken beim Durcharbeiten.
 Pro Wort werden aktuell bis zu 3 Bildvarianten unterstützt (Trainingsmodus-Karussell,
 z. B. roter/grüner Pullover = beides "Pullover") — müssen nicht sofort alle 3 vorhanden sein.
 
-## Set 1 — Buch / Tuch / Dach / Tag
+## Set 1 — Buch / Tuch / Dach / Tag ✅ erledigt
 
-- [ ] **ein Buch** (n) — Suchbegriffe: Buch, book, aufgeschlagenes Buch
-  - [ ] Variante A
-  - [ ] Variante B — z. B. andere Farbe/Cover
-  - [ ] Variante C — z. B. Bücherstapel
-- [ ] **ein Tuch** (n) — Suchbegriffe: Kopftuch, headscarf, Halstuch
-  - [ ] Variante A
-  - [ ] Variante B — z. B. andere Farbe/Muster
-  - [ ] Variante C — z. B. gebunden statt flach
-  - ⚠ Klar von "Schal" (Set 2) abgrenzen — Tuch = quadratisch/gebunden, nicht gestrickt
-- [ ] **ein Dach** (n) — Suchbegriffe: Hausdach, roof, Dachziegel
-  - [ ] Variante A
-  - [ ] Variante B — z. B. graues statt rotes Dach
-  - [ ] Variante C — z. B. Vogelperspektive
-- [ ] **ein Tag** (m) — Suchbegriffe: Sonne, daytime, sonniger Tag, Sonnenaufgang
-  - [ ] Variante A
-  - [ ] Variante B
-  - [ ] Variante C
-  - ⚠ Abstrakt — über Symbol "Tageslicht" lösen (Sonne/blauer Himmel, Kalenderblatt, Uhr tagsüber), nicht wörtlich
+Bilder liegen in [`images/`](images/), inkl. Plural-Varianten für Buch/Dach/Tag (Tuch hat keine Plural-Aufnahme).
+
+- [x] **ein Buch** (n) — `buch-a/b/c.jpg` · Plural `buch-plural-a/b/c.jpg` (Bücher)
+  - Ersatz übrig (nicht verwendet): *opened-book-table.jpg*
+- [x] **ein Tuch** (n) — `tuch-a/b/c.jpg` · kein Plural-Bild vorhanden
+  - 5 weitere Ersatzfotos übrig in `bingobilder/` (andere Farben/Personen), falls eine Variante getauscht werden soll
+- [x] **ein Dach** (n) — `dach-a/b/c.jpg` · Plural `dach-plural-a.jpg` (Dächer, nur 1 Variante gefunden)
+  - Ersatz übrig: *red-roof-with-clouds.jpg*, *modern-home-features-newly-installed-black-tile-roof...jpg*
+- [x] **ein Tag** (m) — `tag-a/b/c.jpg` · Plural `tag-plural-a/b/c.jpg` (Tage; teils mit englischer Wochentags-Beschriftung, laut Absprache ok)
+  - Ersatz übrig: *cloud-blue-sky.jpg*, *calendar-page-close-up.jpg*, *monday-inscription...jpg*, *top-view-blue-monday-concept.jpg*, *female-bed-sheets...lazy-sunday-sign.jpg*
 
 ## Set 2 — Schale / Schal / Schnalle
 

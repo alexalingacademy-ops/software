@@ -10,7 +10,7 @@ Die Live-Variante (Kursleiterin liest per Zoom vor) scheiterte online an Ausdruc
 
 ## Aktueller Stand: Solo-Prototyp
 
-Ein React-Prototyp mit drei eigenständigen Modi, aktuell mit Platzhalterbildern (echte Bildquelle vorhanden, noch nicht eingebunden):
+Ein React-Prototyp mit drei eigenständigen Modi. Für Set 1 (Buch/Tuch/Dach/Tag) sind bereits echte Fotos eingebunden, die restlichen Sets zeigen noch Platzhalter-Icons — beides läuft über dieselbe Komponente, fehlende Bilder fallen automatisch auf das Icon zurück:
 
 - **🎯 Bingo** — Vollbild-Ziel (nicht nur eine Reihe/Spalte/Diagonale), automatischer oder manueller Kartenaufruf mit Sprachausgabe (Web Speech API), Zeitmessung mit persistentem persönlichem Rekord pro Boardgröße.
 - **🔁 Training** — Endlos-Karussell: Bildvarianten desselben Worts rotieren automatisch, um Begriffssicherheit über einzelne Fotos hinaus aufzubauen (z. B. roter/grüner Pullover = beides "Pullover"). Umschaltbar zwischen Gruppierung nach Lautung (Minimalpaare) und nach Themenfeld.
@@ -24,7 +24,8 @@ Wortdatenbank (Content, getrennt von UI/Gameplay): [`prototypes/solo/data/words.
 - 6 Minimalpaar-Sets (22 Wörter), z. B. *Buch/Tuch/Dach/Tag*, *Schale/Schal/Schnalle* — bewusst nach **Lautung** kuratiert, nicht nach Thema.
 - Jedes Wort trägt Genus (Farbcode: m=blau, f=pink, n=violett), ein Lautungs-Set und ein Themenfeld-Tag.
 - Gruppierungssystem ist offen für weitere Taxonomien (aktuell: Lautung, Thema) — neue Gruppierungsart = neuer Eintrag, kein UI-Umbau.
-- Jedes Wort kann mehrere Bildvarianten haben (aktuell als Platzhalter simuliert); Varianten sorgen für Abwechslung zwischen Boards bzw. Wiederholungsrunden, nicht für Mehrdeutigkeit auf einem einzelnen Board.
+- Jedes Wort kann mehrere Bildvarianten haben (`images.singular`, aktuell für Set 1 mit echten Fotos befüllt, sonst Platzhalter-Icon); Varianten sorgen für Abwechslung zwischen Boards bzw. Wiederholungsrunden, nicht für Mehrdeutigkeit auf einem einzelnen Board.
+- Jedes Wort trägt zusätzlich eine `plural`-Form (z. B. Buch → Bücher) und optionale Plural-Bilder (`images.plural`) — Datenmodell vorbereitet für den Roadmap-Punkt Singular-Plural-Zuordnung, im Gameplay aber noch nicht verdrahtet.
 - Jedes Wort trägt zusätzlich mehrere Übungssatz-Typen (Einzelwort, Nominativ, Akkusativ, Dativ, Frage — Register `SENTENCE_TYPES`, offen für weitere Typen). Artikel werden aus dem Genus generiert, nicht per Hand getippt, damit sie garantiert korrekt sind. Aktuell im Spiel verdrahtet ist der Akkusativsatz („Ich sehe einen/eine/ein *Wort*.“, passend zum bildbasierten Spielprinzip — man „sieht“ ja tatsächlich das Bildfeld): über den Schalter „Sätze statt Wörter ansagen“ (Bingo + Zuordnen) wird er statt des bloßen Worts vorgelesen. Board-Logik und Zuordnung reagieren weiterhin nur auf die Wort-ID, nicht auf den Ansagetext.
 
 ### Audio-Namenskonvention (fixiert, Dateien folgen später)
@@ -46,6 +47,17 @@ tag--dat-2--anna.mp3       Annas zweite Dativ-Variante zu "Tag"
 - Fehlt für eine Kombination die Audiodatei, fällt die App automatisch auf die Sprachausgabe (Web Speech API) zurück — Aufnahmen können also nach und nach ergänzt werden, ohne dass etwas fehlt.
 
 **Sprecher-Register** (`SPEAKERS` in `data/words.js`, aktuell noch leer): jede Person trägt `id`, `name`, `gender` (m/f) und `herkunft` (Standardaussprache/Dialekt/Region) als Metadaten. Diese Klassifizierung ist die Grundlage für eine spätere Sprecherauswahl (gezielt eine Stimme wählen) oder einen Random-Mix-Modus (zufällige Stimme pro Ansage, für breiteres Hörverständnis-Training).
+
+### Bild-Namenskonvention (analog zur Audio-Konvention, `data/words.js` als `imagePath()` hinterlegt)
+
+```
+images/{wortId}-{variante}.{ext}            Singular, z.B. images/buch-a.jpg
+images/{wortId}-plural-{variante}.{ext}      Plural,   z.B. images/buch-plural-a.jpg
+```
+
+- **variante**: `a`/`b`/`c` — mehrere Bilder desselben Worts (z. B. rotes/graues Dach = beides "Dach"), analog zu den A/B/C-Varianten im Trainingsmodus. Nicht jedes Wort braucht alle drei.
+- Bilder liegen unter [`prototypes/solo/images/`](prototypes/solo/images/), auf max. 1000px Kantenlänge verkleinert (JPEG, Qualität 82) — die Originalauflösung von Freepik ist fürs Web unnötig groß.
+- Fehlt eine Bilddatei, zeigt die App automatisch das Platzhalter-Icon — Bilder können also Wort für Wort ergänzt werden. Auswahl-Hilfe: [`prototypes/solo/BILDAUSWAHL-CHECKLISTE.md`](prototypes/solo/BILDAUSWAHL-CHECKLISTE.md).
 
 ## Spielregeln (Kern-Mechanik)
 
@@ -69,9 +81,9 @@ tag--dat-2--anna.mp3       Annas zweite Dativ-Variante zu "Tag"
 - Umgekehrte Zuordnung: Bild erscheint, passende Wörter werden zugeordnet
 - Eigene Sprachaufnahmen statt/zusätzlich zur Web-Speech-API einbinden (Namenskonvention bereits fixiert, siehe Content-Modell), inkl. Sprecherauswahl und Random-Mix-Modus über mehrere Stimmen
 - Satzmodus im Gameplay auf weitere Fälle ausweiten (aktuell nur Akkusativ verdrahtet; Nominativ/Dativ/Frage sind in der Datenbank bereits vorbereitet)
-- Singular-Plural-Zuordnung
-- Anbindung der echten Bildquelle anstelle der Platzhalter-Icons
+- Singular-Plural-Zuordnung als eigener Modus (Plural-Wortformen und -Bilder sind in der Datenbank bereits vorbereitet, siehe Content-Modell)
+- Echte Bilder für die restlichen 5 Lautungs-Sets ergänzen (Set 1 ist fertig)
 
 ## Status
 
-Funktionaler Solo-Prototyp, mit Platzhalterbildern getestet. Nächste inhaltliche Schritte: echte Bilder einbinden, Mehrspieler-Architektur planen.
+Funktionaler Solo-Prototyp. Set 1 (Buch/Tuch/Dach/Tag) hat echte Fotos inkl. Plural-Varianten, die übrigen Sets zeigen noch Platzhalter-Icons. Nächste inhaltliche Schritte: Bilder für die restlichen Sets ergänzen, Mehrspieler-Architektur planen.

@@ -19,7 +19,7 @@ import { WORDS, NOMINATIVE_ARTICLE } from "./data/words";
 // voraus, die eine isolierte Vokabelkarte nicht hat) und irreführend, weil er
 // nur eine von drei möglichen Kasusformen zeigt und Genus/Fall vermischt.
 const ARTICLE = NOMINATIVE_ARTICLE;
-const GENUS_COLOR = { m: "#3B6FD9", f: "#E0538E", n: "#8B5FBF" };
+const GENUS_COLOR = { m: "#7BA6F5", f: "#E871A0", n: "#8B5FBF" };
 const GENUS_LABEL = { m: "maskulin", f: "feminin", n: "neutral" };
 
 const TEMPO = {
@@ -105,6 +105,42 @@ function generateRound(gridN, avoidSignature) {
   return { board, drawPool, signature };
 }
 
+// Zeigt das echte Bild für ein Wort (siehe data/words.js), fällt aber auf das
+// Platzhalter-Icon zurück, solange die Datei fehlt oder nicht lädt — so
+// können Bilder nach und nach ergänzt werden, ohne dass Zellen kaputt aussehen.
+function WordVisual({ word, variantIdx = 0, plural = false, size = 22, iconColor = "#B9B4A6", fill = false }) {
+  const [broken, setBroken] = useState(false);
+  const src = plural ? word.images?.plural?.[variantIdx] : word.images?.singular?.[variantIdx];
+
+  useEffect(() => {
+    setBroken(false);
+  }, [src]);
+
+  if (!src || broken) {
+    return <ImageIcon size={fill ? size * 1.6 : size} strokeWidth={1.5} color={iconColor} />;
+  }
+  return (
+    <img
+      src={src}
+      alt={word.word}
+      onError={() => setBroken(true)}
+      style={
+        fill
+          ? {
+              position: "absolute",
+              top: 4,
+              left: 4,
+              width: "calc(100% - 8px)",
+              height: "calc(100% - 8px)",
+              objectFit: "cover",
+              borderRadius: 6,
+            }
+          : { width: "62%", height: "62%", objectFit: "cover", borderRadius: 8 }
+      }
+    />
+  );
+}
+
 // ---------------------------------------------------------------------------
 export default function DeutschBingo() {
   const [mode, setMode] = useState("bingo"); // 'bingo' | 'training'
@@ -120,6 +156,10 @@ export default function DeutschBingo() {
   const [ttsOn, setTtsOn] = useState(true);
   const [satzModus, setSatzModus] = useState(false);
   const [showWords, setShowWords] = useState(true);
+  // "kompakt": kleines Bild + Textlabel darunter (gut für Alphabetisierung).
+  // "vollflaeche": Bild füllt die ganze Kachel, kein Text/Schriftbild —
+  // reine Bild-Ton-Zuordnung ohne Lese-Krücke. Gilt für alle drei Modi.
+  const [imageDisplayMode, setImageDisplayMode] = useState("kompakt");
   const [bingo, setBingo] = useState(false);
   const [message, setMessage] = useState("");
   const [shakeId, setShakeId] = useState(null);
@@ -203,21 +243,14 @@ export default function DeutschBingo() {
     [ttsOn, speakWord, pickAnnouncement]
   );
 
-  // Rekord für die aktuelle Boardgröße laden
+  // Rekord für die aktuelle Boardgröße laden (Browser-localStorage, pro Gerät)
   useEffect(() => {
-    let cancelled = false;
-    async function loadRecord() {
-      try {
-        const res = await window.storage.get(`bestzeit_${gridN}x${gridN}`, false);
-        if (!cancelled) setRecord(res ? Number(res.value) : null);
-      } catch (e) {
-        if (!cancelled) setRecord(null);
-      }
+    try {
+      const raw = window.localStorage.getItem(`bestzeit_${gridN}x${gridN}`);
+      setRecord(raw ? Number(raw) : null);
+    } catch (e) {
+      setRecord(null);
     }
-    loadRecord();
-    return () => {
-      cancelled = true;
-    };
   }, [gridN]);
 
   const startNewGame = useCallback((size) => {
@@ -318,25 +351,18 @@ export default function DeutschBingo() {
     setBingo(true);
     setIsPlaying(false);
 
-    (async () => {
-      try {
-        const key = `bestzeit_${gridN}x${gridN}`;
-        let existingMs = null;
-        try {
-          const existing = await window.storage.get(key, false);
-          existingMs = existing ? Number(existing.value) : null;
-        } catch (e) {
-          existingMs = null;
-        }
-        if (existingMs === null || finalElapsed < existingMs) {
-          await window.storage.set(key, String(finalElapsed), false);
-          setRecord(finalElapsed);
-          setNewRecord(true);
-        }
-      } catch (e) {
-        // Storage nicht verfügbar — Rekord bleibt nur für diese Sitzung im Kopf
+    try {
+      const key = `bestzeit_${gridN}x${gridN}`;
+      const existingRaw = window.localStorage.getItem(key);
+      const existingMs = existingRaw ? Number(existingRaw) : null;
+      if (existingMs === null || finalElapsed < existingMs) {
+        window.localStorage.setItem(key, String(finalElapsed));
+        setRecord(finalElapsed);
+        setNewRecord(true);
       }
-    })();
+    } catch (e) {
+      // Storage nicht verfügbar — Rekord bleibt nur für diese Sitzung im Kopf
+    }
   }, [coveredIds, board, bingo, gridN]);
 
   // Trainingsmodus: Variantenwechsel im gewählten Tempo
@@ -499,36 +525,71 @@ export default function DeutschBingo() {
                 {board.map((word) => {
                   const covered = coveredIds.has(word.id);
                   const called = calledIds.has(word.id);
+                  const fill = imageDisplayMode === "vollflaeche";
                   return (
+                    <div key={word.id} style={{ containerType: "inline-size", aspectRatio: "1 / 1" }}>
                     <button
-                      key={word.id}
                       onClick={() => handleCellClick(word)}
                       className={`bingo-cell${shakeId === word.id ? " shake" : ""}`}
                       style={{
                         position: "relative",
-                        aspectRatio: "1 / 1",
+                        width: "100%",
+                        height: "100%",
                         borderRadius: 12,
-                        border: `3px solid ${GENUS_COLOR[word.genus]}`,
-                        background: covered ? GENUS_COLOR[word.genus] : "#FFFFFF",
+                        border: `8cqw solid ${GENUS_COLOR[word.genus]}`,
+                        background: fill ? "#FFFFFF" : covered ? GENUS_COLOR[word.genus] : "#FFFFFF",
+                        overflow: fill ? "hidden" : "visible",
                         cursor: "pointer",
                         display: "flex",
                         flexDirection: "column",
                         alignItems: "center",
                         justifyContent: "center",
-                        padding: 6,
+                        padding: fill ? 0 : 6,
                       }}
                       title={called ? "Aufgerufen — klicken zum Abdecken" : "Noch nicht aufgerufen"}
                     >
-                      <ImageIcon size={gridN === 3 ? 30 : 22} strokeWidth={1.5} color={covered ? "#FFFFFF" : "#B9B4A6"} />
-                      {showWords && (
+                      <WordVisual
+                        word={word}
+                        size={gridN === 3 ? 30 : 22}
+                        iconColor={fill ? "#B9B4A6" : covered ? "#FFFFFF" : "#B9B4A6"}
+                        fill={fill}
+                      />
+                      {fill && covered && (
+                        <div
+                          style={{
+                            position: "absolute",
+                            inset: 4,
+                            borderRadius: 6,
+                            background: `${GENUS_COLOR[word.genus]}CC`,
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                          }}
+                        >
+                          <span style={{ color: "#FFFFFF", fontSize: 26 }}>✓</span>
+                        </div>
+                      )}
+                      {!fill && showWords && (
                         <span style={{ marginTop: 4, fontSize: gridN === 3 ? 13 : 11, fontWeight: 600, color: covered ? "#FFFFFF" : "#23273A", textAlign: "center" }}>
                           {ARTICLE[word.genus]} {word.word}
                         </span>
                       )}
                       {!called && (
-                        <span style={{ position: "absolute", top: 4, right: 6, fontSize: 10, color: "#B9B4A6" }}>●</span>
+                        <span
+                          style={{
+                            position: "absolute",
+                            top: 4,
+                            right: 6,
+                            fontSize: 10,
+                            color: fill ? "#FFFFFF" : "#B9B4A6",
+                            textShadow: fill ? "0 0 3px rgba(0,0,0,0.6)" : "none",
+                          }}
+                        >
+                          ●
+                        </span>
                       )}
                     </button>
+                    </div>
                   );
                 })}
               </div>
@@ -623,6 +684,24 @@ export default function DeutschBingo() {
                 </div>
               </div>
 
+              <div>
+                <div style={labelStyle}>Bildanzeige</div>
+                <div style={{ display: "flex", gap: 6 }}>
+                  <button
+                    onClick={() => setImageDisplayMode("kompakt")}
+                    style={{ ...pill, background: imageDisplayMode === "kompakt" ? "#E8A93B" : "#FFFFFF", borderColor: imageDisplayMode === "kompakt" ? "#E8A93B" : "#DDD6C7" }}
+                  >
+                    Mit Text (Alphabetisierung)
+                  </button>
+                  <button
+                    onClick={() => setImageDisplayMode("vollflaeche")}
+                    style={{ ...pill, background: imageDisplayMode === "vollflaeche" ? "#E8A93B" : "#FFFFFF", borderColor: imageDisplayMode === "vollflaeche" ? "#E8A93B" : "#DDD6C7" }}
+                  >
+                    Bildfüllend
+                  </button>
+                </div>
+              </div>
+
               <label style={toggleRow}>
                 <input type="checkbox" checked={ttsOn} onChange={(e) => setTtsOn(e.target.checked)} />
                 {ttsOn ? <Volume2 size={15} /> : <VolumeX size={15} />}
@@ -676,6 +755,20 @@ export default function DeutschBingo() {
                   </button>
                 ))}
               </div>
+              <div style={{ display: "flex", gap: 6 }}>
+                <button
+                  onClick={() => setImageDisplayMode("kompakt")}
+                  style={{ ...pill, background: imageDisplayMode === "kompakt" ? "#E8A93B" : "#FFFFFF", borderColor: imageDisplayMode === "kompakt" ? "#E8A93B" : "#DDD6C7" }}
+                >
+                  Mit Text (Alphabetisierung)
+                </button>
+                <button
+                  onClick={() => setImageDisplayMode("vollflaeche")}
+                  style={{ ...pill, background: imageDisplayMode === "vollflaeche" ? "#E8A93B" : "#FFFFFF", borderColor: imageDisplayMode === "vollflaeche" ? "#E8A93B" : "#DDD6C7" }}
+                >
+                  Bildfüllend
+                </button>
+              </div>
               <div style={{ fontSize: 11, color: "#8A8570", marginLeft: "auto" }}>
                 Runde {trainingTick + 1} · Bild antippen zum Anhören
               </div>
@@ -689,34 +782,42 @@ export default function DeutschBingo() {
                 <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(96px, 1fr))", gap: 10 }}>
                   {groupWordsList.map((word) => {
                     const variantIdx = (seedFromId(word.id) + trainingTick) % VARIANT_COUNT;
+                    const fill = imageDisplayMode === "vollflaeche";
                     return (
+                      <div key={word.id} style={{ containerType: "inline-size", aspectRatio: "1 / 1" }}>
                       <button
-                        key={word.id}
                         onClick={() => speakWord(word.word)}
                         className="train-cell"
                         style={{
                           position: "relative",
-                          aspectRatio: "1 / 1",
+                          width: "100%",
+                          height: "100%",
                           borderRadius: 12,
-                          border: `3px solid ${GENUS_COLOR[word.genus]}`,
-                          backgroundColor: VARIANT_TINTS[variantIdx],
+                          border: `8cqw solid ${GENUS_COLOR[word.genus]}`,
+                          backgroundColor: fill ? "#FFFFFF" : VARIANT_TINTS[variantIdx],
+                          overflow: fill ? "hidden" : "visible",
                           cursor: "pointer",
                           display: "flex",
                           flexDirection: "column",
                           alignItems: "center",
                           justifyContent: "center",
-                          padding: 6,
+                          padding: fill ? 0 : 6,
                         }}
                         title={`${word.word} anhören`}
                       >
-                        <ImageIcon size={22} strokeWidth={1.5} color="#8A8570" />
-                        <span style={{ marginTop: 4, fontSize: 11, fontWeight: 600, textAlign: "center" }}>
-                          {ARTICLE[word.genus]} {word.word}
-                        </span>
-                        <span style={{ position: "absolute", top: 4, right: 6, fontSize: 9, color: "#8A8570" }}>
-                          {VARIANT_LABELS[variantIdx]}
-                        </span>
+                        <WordVisual word={word} variantIdx={variantIdx} size={22} iconColor="#8A8570" fill={fill} />
+                        {!fill && (
+                          <span style={{ marginTop: 4, fontSize: 11, fontWeight: 600, textAlign: "center" }}>
+                            {ARTICLE[word.genus]} {word.word}
+                          </span>
+                        )}
+                        {!fill && (
+                          <span style={{ position: "absolute", top: 4, right: 6, fontSize: 9, color: "#8A8570" }}>
+                            {VARIANT_LABELS[variantIdx]}
+                          </span>
+                        )}
                       </button>
+                      </div>
                     );
                   })}
                 </div>
@@ -724,9 +825,10 @@ export default function DeutschBingo() {
             ))}
 
             <p style={{ marginTop: 16, fontSize: 12, color: "#8A8570", maxWidth: 560 }}>
-              Platzhalter-Hinweis: die Buchstaben A/B/C und Farbtöne stehen hier nur stellvertretend für
-              unterschiedliche Fotos desselben Worts (z. B. roter/grüner Pullover). Sobald echte Bilder da
-              sind, ersetzt jedes Wort seine 2–3 hinterlegten Varianten 1:1 an dieser Stelle.
+              Set 1 (Buch/Tuch/Dach/Tag) zeigt bereits echte Fotos. Bei den restlichen Wörtern stehen die
+              Buchstaben A/B/C und Farbtöne noch stellvertretend für unterschiedliche Fotos desselben Worts
+              (z. B. roter/grüner Pullover) — sobald echte Bilder ergänzt werden, ersetzen sie die Platzhalter
+              automatisch an dieser Stelle.
             </p>
             {grouping === "thema" && (
               <p style={{ marginTop: 4, fontSize: 12, color: "#B5473E", maxWidth: 560 }}>
@@ -747,44 +849,72 @@ export default function DeutschBingo() {
                 {matchGrid.map((cell) => {
                   const isCorrectMatch = matchTarget && cell.word.id === matchTarget.id;
                   const flashed = matchFlashKey === cell.key;
+                  const fill = imageDisplayMode === "vollflaeche";
                   return (
+                    <div key={cell.key} style={{ containerType: "inline-size", aspectRatio: "1 / 1" }}>
                     <button
-                      key={cell.key}
                       onClick={() => handleMatchCellClick(cell)}
                       className={`train-cell${matchShakeKey === cell.key ? " shake" : ""}${flashed ? " pop" : ""}`}
                       style={{
                         position: "relative",
-                        aspectRatio: "1 / 1",
+                        width: "100%",
+                        height: "100%",
                         borderRadius: 12,
-                        border: `3px solid ${GENUS_COLOR[cell.word.genus]}`,
-                        backgroundColor: flashed ? GENUS_COLOR[cell.word.genus] : VARIANT_TINTS[cell.variantIdx],
+                        border: `8cqw solid ${GENUS_COLOR[cell.word.genus]}`,
+                        backgroundColor: fill ? "#FFFFFF" : flashed ? GENUS_COLOR[cell.word.genus] : VARIANT_TINTS[cell.variantIdx],
+                        overflow: fill ? "hidden" : "visible",
                         cursor: "pointer",
                         display: "flex",
                         flexDirection: "column",
                         alignItems: "center",
                         justifyContent: "center",
-                        padding: 6,
+                        padding: fill ? 0 : 6,
                       }}
                       title={showWords ? undefined : "Zum passenden Wort tippen"}
                     >
-                      <ImageIcon size={22} strokeWidth={1.5} color={flashed ? "#FFFFFF" : "#8A8570"} />
-                      {showWords && (
+                      <WordVisual
+                        word={cell.word}
+                        variantIdx={cell.variantIdx}
+                        size={22}
+                        iconColor={fill ? "#8A8570" : flashed ? "#FFFFFF" : "#8A8570"}
+                        fill={fill}
+                      />
+                      {fill && flashed && (
+                        <div
+                          style={{
+                            position: "absolute",
+                            inset: 4,
+                            borderRadius: 6,
+                            background: `${GENUS_COLOR[cell.word.genus]}CC`,
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                          }}
+                        >
+                          <span style={{ color: "#FFFFFF", fontSize: 26 }}>✓</span>
+                        </div>
+                      )}
+                      {!fill && showWords && (
                         <span style={{ marginTop: 4, fontSize: 11, fontWeight: 600, textAlign: "center", color: flashed ? "#FFFFFF" : "#23273A" }}>
                           {ARTICLE[cell.word.genus]} {cell.word.word}
                         </span>
                       )}
-                      <span style={{ position: "absolute", top: 4, right: 6, fontSize: 9, color: flashed ? "#FFFFFF" : "#8A8570" }}>
-                        {VARIANT_LABELS[cell.variantIdx]}
-                      </span>
+                      {!fill && (
+                        <span style={{ position: "absolute", top: 4, right: 6, fontSize: 9, color: flashed ? "#FFFFFF" : "#8A8570" }}>
+                          {VARIANT_LABELS[cell.variantIdx]}
+                        </span>
+                      )}
                     </button>
+                    </div>
                   );
                 })}
               </div>
 
               <p style={{ marginTop: 16, fontSize: 12, color: "#8A8570", maxWidth: 560 }}>
-                Achtung, Platzhalter: weil alle Bilder gerade nur generische Icons sind, siehst du testweise den
-                Wortlabel auf jeder Kachel. Mit echten Fotos wird "Wörter als Text zeigen" ausgeschaltet — dann
-                zählt nur noch, ob Bild und Ansage zusammenpassen, nicht ob der Text übereinstimmt.
+                Set 1 (Buch/Tuch/Dach/Tag) zeigt bereits echte Fotos, der Rest noch generische Icons — deshalb
+                siehst du testweise den Wortlabel auf jeder Kachel. Sobald alle Wörter echte Bilder haben, kannst
+                du "Wörter als Text zeigen" ausschalten — dann zählt nur noch, ob Bild und Ansage zusammenpassen,
+                nicht ob der Text übereinstimmt.
               </p>
             </div>
 
@@ -826,6 +956,24 @@ export default function DeutschBingo() {
                       {t.label}
                     </button>
                   ))}
+                </div>
+              </div>
+
+              <div>
+                <div style={labelStyle}>Bildanzeige</div>
+                <div style={{ display: "flex", gap: 6 }}>
+                  <button
+                    onClick={() => setImageDisplayMode("kompakt")}
+                    style={{ ...pill, background: imageDisplayMode === "kompakt" ? "#E8A93B" : "#FFFFFF", borderColor: imageDisplayMode === "kompakt" ? "#E8A93B" : "#DDD6C7" }}
+                  >
+                    Mit Text (Alphabetisierung)
+                  </button>
+                  <button
+                    onClick={() => setImageDisplayMode("vollflaeche")}
+                    style={{ ...pill, background: imageDisplayMode === "vollflaeche" ? "#E8A93B" : "#FFFFFF", borderColor: imageDisplayMode === "vollflaeche" ? "#E8A93B" : "#DDD6C7" }}
+                  >
+                    Bildfüllend
+                  </button>
                 </div>
               </div>
 
