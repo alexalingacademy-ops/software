@@ -11,39 +11,7 @@ import {
   Trophy,
   RefreshCw,
 } from "lucide-react";
-
-// ---------------------------------------------------------------------------
-// Wortdaten: die 6 Minimalpaar-Sets
-// ---------------------------------------------------------------------------
-const WORDS = [
-  { id: "buch", word: "Buch", genus: "n", set: 1, topic: "Alltagsgegenstände" },
-  { id: "tuch", word: "Tuch", genus: "n", set: 1, topic: "Kleidung" },
-  { id: "dach", word: "Dach", genus: "n", set: 1, topic: "Wohnen" },
-  { id: "tag", word: "Tag", genus: "m", set: 1, topic: "Zeit" },
-
-  { id: "schale", word: "Schale", genus: "f", set: 2, topic: "Küche" },
-  { id: "schal", word: "Schal", genus: "m", set: 2, topic: "Kleidung" },
-  { id: "schnalle", word: "Schnalle", genus: "f", set: 2, topic: "Kleidung" },
-
-  { id: "nase", word: "Nase", genus: "f", set: 3, topic: "Körper" },
-  { id: "vase", word: "Vase", genus: "f", set: 3, topic: "Wohnen" },
-  { id: "hase", word: "Hase", genus: "m", set: 3, topic: "Tiere" },
-
-  { id: "tasse", word: "Tasse", genus: "f", set: 4, topic: "Küche" },
-  { id: "tanne", word: "Tanne", genus: "f", set: 4, topic: "Natur" },
-  { id: "tante", word: "Tante", genus: "f", set: 4, topic: "Familie" },
-  { id: "tasche", word: "Tasche", genus: "f", set: 4, topic: "Kleidung" },
-  { id: "taste", word: "Taste", genus: "f", set: 4, topic: "Alltagsgegenstände" },
-
-  { id: "ratte", word: "Ratte", genus: "f", set: 5, topic: "Tiere" },
-  { id: "watte", word: "Watte", genus: "f", set: 5, topic: "Alltagsgegenstände" },
-
-  { id: "bett", word: "Bett", genus: "n", set: 6, topic: "Wohnen" },
-  { id: "beet", word: "Beet", genus: "n", set: 6, topic: "Natur" },
-  { id: "brett", word: "Brett", genus: "n", set: 6, topic: "Alltagsgegenstände" },
-  { id: "boot", word: "Boot", genus: "n", set: 6, topic: "Fahrzeuge" },
-  { id: "brot", word: "Brot", genus: "n", set: 6, topic: "Essen" },
-];
+import { WORDS } from "./data/words";
 
 const ARTICLE = { m: "der", f: "die", n: "das" };
 const GENUS_COLOR = { m: "#3B6FD9", f: "#E0538E", n: "#8B5FBF" };
@@ -145,6 +113,7 @@ export default function DeutschBingo() {
   const [isPlaying, setIsPlaying] = useState(false);
   const [tempo, setTempo] = useState("mittel");
   const [ttsOn, setTtsOn] = useState(true);
+  const [satzModus, setSatzModus] = useState(false);
   const [showWords, setShowWords] = useState(true);
   const [bingo, setBingo] = useState(false);
   const [message, setMessage] = useState("");
@@ -168,6 +137,7 @@ export default function DeutschBingo() {
   // ---- Zuordnen-Modus State (Ansage + Tippen, Dauerschleife) ----
   const [matchGrid, setMatchGrid] = useState([]);
   const [matchTarget, setMatchTarget] = useState(null);
+  const [matchAnnouncedText, setMatchAnnouncedText] = useState("");
   const [matchCorrectCount, setMatchCorrectCount] = useState(0);
   const [matchShakeKey, setMatchShakeKey] = useState(null);
   const [matchFlashKey, setMatchFlashKey] = useState(null);
@@ -187,8 +157,8 @@ export default function DeutschBingo() {
     }
   }, []);
 
-  // speakWord: spricht immer (für manuelle Klicks im Training).
-  // speak: respektiert den ttsOn-Schalter (für den automatischen Bingo-Aufruf).
+  // speakWord: spricht immer, unabhängig vom ttsOn-Schalter (für manuelle
+  // Klicks im Training). announce() unten respektiert ttsOn zusätzlich.
   const speakWord = useCallback((text, rate = 0.95) => {
     if (!window.speechSynthesis) return;
     window.speechSynthesis.cancel();
@@ -200,12 +170,32 @@ export default function DeutschBingo() {
     window.speechSynthesis.speak(utter);
   }, []);
 
-  const speak = useCallback(
-    (text) => {
-      if (!ttsOn) return;
-      speakWord(text, TEMPO[tempo].rate);
+  // Wählt den Ansagetext für ein Wort: im Satzmodus der Akkusativ-Übungssatz
+  // aus word.sentences ("Ich sehe einen/eine/ein X."), sonst nur das blanke
+  // Wort. word.sentences enthält daneben auch Nominativ/Dativ/Frage-Varianten
+  // (siehe data/words.js) — hier bewusst auf einen Fall fixiert, damit die
+  // Ansage im Automatisierungs-Training konsistent bleibt statt Fälle zu
+  // mischen. Board/Zuordnung reagieren weiterhin nur auf die Wort-ID.
+  const pickAnnouncement = useCallback(
+    (word) => {
+      if (satzModus) {
+        const akkSatz = word.sentences && word.sentences.find((s) => s.type === "akk");
+        if (akkSatz) return akkSatz.text;
+      }
+      return word.word;
     },
-    [ttsOn, tempo, speakWord]
+    [satzModus]
+  );
+
+  // announce: liefert zusätzlich den gewählten Text zurück (für Anzeige +
+  // Wiederholen), respektiert ttsOn nur fürs tatsächliche Vorlesen.
+  const announce = useCallback(
+    (word, rate) => {
+      const text = pickAnnouncement(word);
+      if (ttsOn) speakWord(text, rate);
+      return text;
+    },
+    [ttsOn, speakWord, pickAnnouncement]
   );
 
   // Rekord für die aktuelle Boardgröße laden
@@ -268,11 +258,11 @@ export default function DeutschBingo() {
 
     const word = pool[idx];
     drawIndexRef.current = idx + 1;
+    const announcedText = announce(word, TEMPO[tempo].rate);
     setCalledIds((prev) => new Set(prev).add(word.id));
-    setHistory((prev) => [word, ...prev].slice(0, 8));
+    setHistory((prev) => [{ ...word, announcedText }, ...prev].slice(0, 8));
     setMessage("");
-    speak(word.word);
-  }, [tempo, speak]);
+  }, [tempo, announce]);
 
   // Auto-Ziehen im gewählten Tempo
   useEffect(() => {
@@ -291,8 +281,8 @@ export default function DeutschBingo() {
   }, [mode, bingo]);
 
   const repeatCurrent = () => {
-    const idx = drawIndexRef.current - 1;
-    if (idx >= 0) speak(drawPoolRef.current[idx].word);
+    if (!ttsOn || !history[0]) return;
+    speakWord(history[0].announcedText, TEMPO[tempo].rate);
   };
 
   const handleCellClick = (word) => {
@@ -396,7 +386,7 @@ export default function DeutschBingo() {
 
   const announceMatchTarget = (word) => {
     setMatchTarget(word);
-    if (word) speak(word.word);
+    setMatchAnnouncedText(word ? announce(word, TEMPO[matchTempo].rate) : "");
   };
 
   const startMatchRound = useCallback(() => {
@@ -581,6 +571,9 @@ export default function DeutschBingo() {
                 <div className="bingo-mono" style={{ fontSize: 30, fontWeight: 700, minHeight: 40, marginTop: 4 }}>
                   {currentWord ? currentWord.word : "—"}
                 </div>
+                {currentWord && currentWord.announcedText !== currentWord.word && (
+                  <div style={{ fontSize: 13, opacity: 0.7, marginTop: 2 }}>{currentWord.announcedText}</div>
+                )}
                 <div style={{ display: "flex", gap: 6, marginTop: 12, flexWrap: "wrap" }}>
                   {history.slice(1).map((w, i) => (
                     <span key={i} className="bingo-mono" style={{ fontSize: 11, padding: "3px 8px", borderRadius: 20, background: "rgba(255,255,255,0.1)", opacity: 1 - i * 0.1 }}>
@@ -629,6 +622,11 @@ export default function DeutschBingo() {
                 <input type="checkbox" checked={ttsOn} onChange={(e) => setTtsOn(e.target.checked)} />
                 {ttsOn ? <Volume2 size={15} /> : <VolumeX size={15} />}
                 Wörter vorlesen (Sprachausgabe)
+              </label>
+
+              <label style={toggleRow}>
+                <input type="checkbox" checked={satzModus} onChange={(e) => setSatzModus(e.target.checked)} />
+                Sätze statt Wörter ansagen (Akkusativ-Training)
               </label>
 
               <label style={toggleRow}>
@@ -796,6 +794,9 @@ export default function DeutschBingo() {
                     {ARTICLE[matchTarget.genus]} {matchTarget.word} · {GENUS_LABEL[matchTarget.genus]}
                   </div>
                 )}
+                {matchTarget && matchAnnouncedText !== matchTarget.word && (
+                  <div style={{ fontSize: 13, opacity: 0.7, marginTop: 4 }}>{matchAnnouncedText}</div>
+                )}
               </div>
 
               <div style={{ display: "flex", gap: 8 }}>
@@ -803,7 +804,11 @@ export default function DeutschBingo() {
                   {matchPlaying ? <Pause size={16} /> : <Play size={16} />}
                   {matchPlaying ? "Pause" : "Weiter"}
                 </button>
-                <button onClick={() => matchTarget && speak(matchTarget.word)} style={btnIcon} title="Wiederholen">
+                <button
+                  onClick={() => ttsOn && matchAnnouncedText && speakWord(matchAnnouncedText, TEMPO[matchTempo].rate)}
+                  style={btnIcon}
+                  title="Wiederholen"
+                >
                   <Repeat size={16} />
                 </button>
               </div>
@@ -823,6 +828,11 @@ export default function DeutschBingo() {
                 <input type="checkbox" checked={ttsOn} onChange={(e) => setTtsOn(e.target.checked)} />
                 {ttsOn ? <Volume2 size={15} /> : <VolumeX size={15} />}
                 Wörter vorlesen (Sprachausgabe)
+              </label>
+
+              <label style={toggleRow}>
+                <input type="checkbox" checked={satzModus} onChange={(e) => setSatzModus(e.target.checked)} />
+                Sätze statt Wörter ansagen (Akkusativ-Training)
               </label>
 
               <label style={toggleRow}>

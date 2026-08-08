@@ -17,6 +17,7 @@ Ein React-Prototyp mit drei eigenständigen Modi, aktuell mit Platzhalterbildern
 - **🧩 Zuordnen** — Wort wird angesagt, passendes Bild wird angetippt, in Dauerschleife ohne Zeitdruck. Mehrere Bildvarianten desselben Worts dürfen gleichzeitig im Raster liegen, da es um korrekte Zuordnung geht, nicht um Eindeutigkeit.
 
 Datei: [`prototypes/solo/deutsch-bingo.jsx`](prototypes/solo/deutsch-bingo.jsx)
+Wortdatenbank (Content, getrennt von UI/Gameplay): [`prototypes/solo/data/words.js`](prototypes/solo/data/words.js)
 
 ## Content-Modell
 
@@ -24,6 +25,27 @@ Datei: [`prototypes/solo/deutsch-bingo.jsx`](prototypes/solo/deutsch-bingo.jsx)
 - Jedes Wort trägt Genus (Farbcode: m=blau, f=pink, n=violett), ein Lautungs-Set und ein Themenfeld-Tag.
 - Gruppierungssystem ist offen für weitere Taxonomien (aktuell: Lautung, Thema) — neue Gruppierungsart = neuer Eintrag, kein UI-Umbau.
 - Jedes Wort kann mehrere Bildvarianten haben (aktuell als Platzhalter simuliert); Varianten sorgen für Abwechslung zwischen Boards bzw. Wiederholungsrunden, nicht für Mehrdeutigkeit auf einem einzelnen Board.
+- Jedes Wort trägt zusätzlich mehrere Übungssatz-Typen (Einzelwort, Nominativ, Akkusativ, Dativ, Frage — Register `SENTENCE_TYPES`, offen für weitere Typen). Artikel werden aus dem Genus generiert, nicht per Hand getippt, damit sie garantiert korrekt sind. Aktuell im Spiel verdrahtet ist der Akkusativsatz („Ich sehe einen/eine/ein *Wort*.“, passend zum bildbasierten Spielprinzip — man „sieht“ ja tatsächlich das Bildfeld): über den Schalter „Sätze statt Wörter ansagen“ (Bingo + Zuordnen) wird er statt des bloßen Worts vorgelesen. Board-Logik und Zuordnung reagieren weiterhin nur auf die Wort-ID, nicht auf den Ansagetext.
+
+### Audio-Namenskonvention (fixiert, Dateien folgen später)
+
+Sobald eigene Sprachaufnahmen (z. B. Alexas Stimme, später weitere Sprecher:innen) die Sprachausgabe ergänzen oder ersetzen sollen, gilt folgendes Namensschema (bereits in `data/words.js` als `audioKey()`/`audioFileName()` hinterlegt):
+
+```
+{wortId}--{satzKürzel}-{Nummer}--{sprecherId}.{ext}
+
+buch--wort-1--anna.mp3     Anna sagt "Buch"
+buch--akk-1--stefan.mp3    Stefan sagt "Ich sehe ein Buch."
+tag--dat-2--anna.mp3       Annas zweite Dativ-Variante zu "Tag"
+```
+
+- **wortId**: die `id` aus der Wortliste (z. B. `buch`).
+- **satzKürzel**: Schlüssel aus `SENTENCE_TYPES` (`wort`, `nom`, `akk`, `dat`, `frage`, …).
+- **Nummer**: Pflichtfeld, auch bei nur einer Aufnahme (`1`) — erlaubt später weitere Satzvarianten desselben Typs, ohne bestehende Dateien umzubenennen.
+- **sprecherId**: Kennung aus dem `SPEAKERS`-Register (siehe unten).
+- Fehlt für eine Kombination die Audiodatei, fällt die App automatisch auf die Sprachausgabe (Web Speech API) zurück — Aufnahmen können also nach und nach ergänzt werden, ohne dass etwas fehlt.
+
+**Sprecher-Register** (`SPEAKERS` in `data/words.js`, aktuell noch leer): jede Person trägt `id`, `name`, `gender` (m/f) und `herkunft` (Standardaussprache/Dialekt/Region) als Metadaten. Diese Klassifizierung ist die Grundlage für eine spätere Sprecherauswahl (gezielt eine Stimme wählen) oder einen Random-Mix-Modus (zufällige Stimme pro Ansage, für breiteres Hörverständnis-Training).
 
 ## Spielregeln (Kern-Mechanik)
 
@@ -45,6 +67,8 @@ Datei: [`prototypes/solo/deutsch-bingo.jsx`](prototypes/solo/deutsch-bingo.jsx)
 - Statt Bild-Wort-Zuordnung: Synonyme oder Antonyme
 - Quartette statt 1:1-Paare — 1 Wort triggert 3 Bilder (z. B. *Wetter* → Sonne, Wolken, Blitz)
 - Umgekehrte Zuordnung: Bild erscheint, passende Wörter werden zugeordnet
+- Eigene Sprachaufnahmen statt/zusätzlich zur Web-Speech-API einbinden (Namenskonvention bereits fixiert, siehe Content-Modell), inkl. Sprecherauswahl und Random-Mix-Modus über mehrere Stimmen
+- Satzmodus im Gameplay auf weitere Fälle ausweiten (aktuell nur Akkusativ verdrahtet; Nominativ/Dativ/Frage sind in der Datenbank bereits vorbereitet)
 - Singular-Plural-Zuordnung
 - Anbindung der echten Bildquelle anstelle der Platzhalter-Icons
 
