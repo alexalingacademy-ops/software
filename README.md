@@ -10,11 +10,12 @@ Die Live-Variante (Kursleiterin liest per Zoom vor) scheiterte online an Ausdruc
 
 ## Aktueller Stand: Solo-Prototyp
 
-Ein React-Prototyp mit drei eigenständigen Modi. Für Set 1 (Buch/Tuch/Dach/Tag) sind bereits echte Fotos eingebunden, die restlichen Sets zeigen noch Platzhalter-Icons — beides läuft über dieselbe Komponente, fehlende Bilder fallen automatisch auf das Icon zurück:
+Ein React-Prototyp mit vier eigenständigen Modi. Alle 78 Wörter haben mittlerweile echte Fotos; fehlt für ein Wort dennoch mal ein Bild, fällt die App automatisch auf ein Platzhalter-Icon zurück:
 
 - **🎯 Bingo** — Vollbild-Ziel (nicht nur eine Reihe/Spalte/Diagonale), automatischer oder manueller Kartenaufruf mit Sprachausgabe (Web Speech API), Zeitmessung mit persistentem persönlichem Rekord pro Boardgröße.
 - **🔁 Training** — Endlos-Karussell: Bildvarianten desselben Worts rotieren automatisch, um Begriffssicherheit über einzelne Fotos hinaus aufzubauen (z. B. roter/grüner Pullover = beides "Pullover"). Umschaltbar zwischen Gruppierung nach Lautung (Minimalpaare) und nach Themenfeld.
 - **🧩 Zuordnen** — Wort wird angesagt, passendes Bild wird angetippt, in Dauerschleife ohne Zeitdruck. Mehrere Bildvarianten desselben Worts dürfen gleichzeitig im Raster liegen, da es um korrekte Zuordnung geht, nicht um Eindeutigkeit.
+- **🎧 Minimalpaare** — zwei Wörter aus demselben Lautungs-Set werden als Bild gezeigt, eines wird angesagt, das passende Bild muss angetippt werden. Bewusst ohne Textlabel — reine Hörunterscheidung ähnlich klingender Wörter, nicht Lesen.
 
 Datei: [`prototypes/solo/deutsch-bingo.jsx`](prototypes/solo/deutsch-bingo.jsx)
 Wortdatenbank (Content, getrennt von UI/Gameplay): [`prototypes/solo/data/words.js`](prototypes/solo/data/words.js)
@@ -82,8 +83,8 @@ images/{wortId}-plural/*.{jpg,png,webp}      Plural,   z.B. images/buch-plural/i
 - Eigene Sprachaufnahmen statt/zusätzlich zur Web-Speech-API einbinden (Namenskonvention bereits fixiert, siehe Content-Modell), inkl. Sprecherauswahl und Random-Mix-Modus über mehrere Stimmen
 - Satzmodus im Gameplay auf weitere Fälle ausweiten (aktuell nur Akkusativ verdrahtet; Nominativ/Dativ/Frage sind in der Datenbank bereits vorbereitet)
 - Singular-Plural-Zuordnung als eigener Modus (Plural-Wortformen und -Bilder sind in der Datenbank bereits vorbereitet, siehe Content-Modell)
-- Echte Bilder für die restlichen 5 Lautungs-Sets ergänzen (Set 1 ist fertig)
+- Weitere Bildvarianten (B/C) und mehr Plural-Fotos für die Wörter ergänzen, die bisher nur eine Singular-Variante haben
 
 ## Status
 
-Funktionaler Solo-Prototyp. Set 1 (Buch/Tuch/Dach/Tag) hat echte Fotos inkl. Plural-Varianten, die übrigen Sets zeigen noch Platzhalter-Icons. Nächste inhaltliche Schritte: Bilder für die restlichen Sets ergänzen, Mehrspieler-Architektur planen.
+Funktionaler Solo-Prototyp mit vier Modi. Alle 78 Wörter haben mindestens ein echtes Foto (Set 1 zusätzlich mit Plural-Varianten). Nächste inhaltliche Schritte: weitere Bildvarianten ergänzen, echte Sprachaufnahmen, Mehrspieler-Architektur planen.
