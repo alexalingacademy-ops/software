@@ -194,6 +194,21 @@ export default function DeutschBingo() {
   const matchTimeoutRef = useRef(null);
   const matchKeySeqRef = useRef(0);
 
+  // ---- Minimalpaare-Modus State (2 Bilder, 1 Ansage, richtiges antippen) ----
+  // Bewusst kein sichtbarer Text zum gesuchten Wort — sonst wäre die
+  // Hörunterscheidung trivial (einfach Text mit Bildlabel abgleichen statt
+  // hinhören). Die zwei Wörter kommen aus demselben Lautungs-Set, da die
+  // Sets ohnehin schon nach Minimalpaar-Kriterien kuratiert sind.
+  const [pairOptions, setPairOptions] = useState([]);
+  const [pairTargetId, setPairTargetId] = useState(null);
+  const [pairAnnouncedText, setPairAnnouncedText] = useState("");
+  const [pairCorrectCount, setPairCorrectCount] = useState(0);
+  const [pairShakeId, setPairShakeId] = useState(null);
+  const [pairFlashId, setPairFlashId] = useState(null);
+  const [pairPlaying, setPairPlaying] = useState(true);
+  const [pairTempo, setPairTempo] = useState("mittel");
+  const pairTimeoutRef = useRef(null);
+
   // deutsche Stimme laden, sobald verfügbar
   useEffect(() => {
     const loadVoices = () => {
@@ -459,6 +474,48 @@ export default function DeutschBingo() {
     }
   };
 
+  // ---- Minimalpaare-Modus: zwei Wörter aus demselben Lautungs-Set, eines
+  // wird angesagt, das passende Bild muss angetippt werden. ----
+  const startPairRound = useCallback(() => {
+    const setNum = 1 + Math.floor(Math.random() * 6);
+    const setWords = WORDS.filter((w) => w.set === setNum);
+    const [a, b] = shuffle(setWords).slice(0, 2);
+    const options = shuffle([a, b]).map((w) => ({ word: w, variantIdx: randomVariant() }));
+    setPairOptions(options);
+    const target = options[Math.floor(Math.random() * 2)].word;
+    setPairTargetId(target.id);
+    setPairAnnouncedText(announce(target, TEMPO[pairTempo].rate));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pairTempo, announce]);
+
+  useEffect(() => {
+    if (mode === "paare" && pairOptions.length === 0) startPairRound();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mode]);
+
+  useEffect(() => () => clearTimeout(pairTimeoutRef.current), []);
+
+  const handlePairClick = (option) => {
+    if (!pairPlaying || !pairTargetId) return;
+    if (option.word.id === pairTargetId) {
+      setPairFlashId(option.word.id);
+      setPairCorrectCount((c) => c + 1);
+      clearTimeout(pairTimeoutRef.current);
+      pairTimeoutRef.current = setTimeout(() => {
+        setPairFlashId(null);
+        startPairRound();
+      }, Math.round(TEMPO[pairTempo].ms * 0.5));
+    } else {
+      setPairShakeId(option.word.id);
+      setTimeout(() => setPairShakeId(null), 400);
+    }
+  };
+
+  const repeatPair = () => {
+    if (!ttsOn || !pairAnnouncedText) return;
+    speakWord(pairAnnouncedText, TEMPO[pairTempo].rate);
+  };
+
   const currentWord = history[0];
 
   return (
@@ -496,6 +553,7 @@ export default function DeutschBingo() {
               {mode === "bingo" && "Solo gegen die Uhr — komplettes Board abdecken, Bestzeit schlagen."}
               {mode === "training" && "Endlos-Karussell — Bilder wechseln automatisch die Variante, damit der Begriff sitzt statt nur ein Foto."}
               {mode === "match" && "Ansage + Antippen, in Dauerschleife — mehrere Bilder desselben Worts dürfen gleichzeitig daliegen, gesucht ist die richtige Zuordnung."}
+              {mode === "paare" && "Zwei ähnlich klingende Wörter aus demselben Set, eines wird angesagt — reine Hörunterscheidung, kein Wort steht als Text da."}
             </p>
           </div>
           <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
@@ -516,6 +574,12 @@ export default function DeutschBingo() {
               style={{ ...pill, background: mode === "match" ? "#23273A" : "#FFFFFF", color: mode === "match" ? "#fff" : "#23273A", borderColor: mode === "match" ? "#23273A" : "#DDD6C7" }}
             >
               🧩 Zuordnen
+            </button>
+            <button
+              onClick={() => setMode("paare")}
+              style={{ ...pill, background: mode === "paare" ? "#23273A" : "#FFFFFF", color: mode === "paare" ? "#fff" : "#23273A", borderColor: mode === "paare" ? "#23273A" : "#DDD6C7" }}
+            >
+              🎧 Minimalpaare
             </button>
           </div>
         </header>
@@ -1005,6 +1069,117 @@ export default function DeutschBingo() {
                 <div>
                   <div style={statLabel}>Richtig erkannt</div>
                   <div className="bingo-mono" style={statValue}>{matchCorrectCount}</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {mode === "paare" && (
+          /* ---------------- Minimalpaare-Modus: 2 Bilder, 1 Ansage, Hörunterscheidung ----------------
+             Bewusst immer bildfüllend und ohne Textlabel (keine eigene
+             Bildanzeige-/Textoption wie in den anderen Modi) — Text würde
+             die Höraufgabe zu einer reinen Lese-Aufgabe machen. */
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 24 }}>
+            <div style={{ flex: "1 1 420px" }}>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 16, maxWidth: 480 }}>
+                {pairOptions.map((option) => {
+                  const flashed = pairFlashId === option.word.id;
+                  return (
+                    <div key={option.word.id} style={{ containerType: "inline-size", aspectRatio: "1 / 1" }}>
+                      <button
+                        onClick={() => handlePairClick(option)}
+                        className={`train-cell${pairShakeId === option.word.id ? " shake" : ""}${flashed ? " pop" : ""}`}
+                        style={{
+                          position: "relative",
+                          width: "100%",
+                          height: "100%",
+                          borderRadius: 14,
+                          border: `8cqw solid ${GENUS_COLOR[option.word.genus]}`,
+                          background: "#FFFFFF",
+                          overflow: "hidden",
+                          cursor: "pointer",
+                          padding: 0,
+                        }}
+                        title="Antippen, wenn das die Ansage war"
+                      >
+                        <WordVisual word={option.word} variantIdx={option.variantIdx} fill iconColor="#B9B4A6" />
+                        {flashed && (
+                          <div
+                            style={{
+                              position: "absolute",
+                              inset: 4,
+                              borderRadius: 8,
+                              background: `${GENUS_COLOR[option.word.genus]}CC`,
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                            }}
+                          >
+                            <span style={{ color: "#FFFFFF", fontSize: 30 }}>✓</span>
+                          </div>
+                        )}
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+
+              <p style={{ marginTop: 16, fontSize: 12, color: "#8A8570", maxWidth: 480 }}>
+                Beide Bilder stammen aus demselben Lautungs-Set — genau das macht die Unterscheidung schwer
+                und ist der Sinn der Übung. Kein Text als Hilfe, nur die Ansage zählt.
+              </p>
+            </div>
+
+            <div style={{ flex: "1 1 260px", display: "flex", flexDirection: "column", gap: 14 }}>
+              <div style={{ background: "#23273A", borderRadius: 14, padding: 18, color: "#F6F1E7" }}>
+                <div style={{ fontSize: 11, letterSpacing: 1, opacity: 0.6, textTransform: "uppercase" }}>Aufgabe</div>
+                <div style={{ fontSize: 13, marginTop: 6, opacity: 0.85 }}>
+                  Auf welches Bild passt die Ansage? Genau hinhören — beide Wörter klingen ähnlich.
+                </div>
+              </div>
+
+              <div style={{ display: "flex", gap: 8 }}>
+                <button onClick={() => setPairPlaying((p) => !p)} style={btnPrimary}>
+                  {pairPlaying ? <Pause size={16} /> : <Play size={16} />}
+                  {pairPlaying ? "Pause" : "Weiter"}
+                </button>
+                <button onClick={repeatPair} style={btnIcon} title="Wiederholen">
+                  <Repeat size={16} />
+                </button>
+              </div>
+
+              <div>
+                <div style={labelStyle}>Tempo (Pause nach richtiger Antwort)</div>
+                <div style={{ display: "flex", gap: 6 }}>
+                  {Object.entries(TEMPO).map(([key, t]) => (
+                    <button key={key} onClick={() => setPairTempo(key)} style={{ ...pill, background: pairTempo === key ? "#E8A93B" : "#FFFFFF", borderColor: pairTempo === key ? "#E8A93B" : "#DDD6C7" }}>
+                      {t.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <label style={toggleRow}>
+                <input type="checkbox" checked={ttsOn} onChange={(e) => setTtsOn(e.target.checked)} />
+                {ttsOn ? <Volume2 size={15} /> : <VolumeX size={15} />}
+                Wörter vorlesen (Sprachausgabe)
+              </label>
+
+              <label style={toggleRow}>
+                <input type="checkbox" checked={satzModus} onChange={(e) => setSatzModus(e.target.checked)} />
+                Sätze statt Wörter ansagen (Akkusativ-Training)
+              </label>
+
+              <button onClick={startPairRound} style={btnGhost}>
+                <RotateCcw size={14} /> Neues Paar
+              </button>
+
+              <div style={statCard}>
+                <Trophy size={15} color="#E8A93B" />
+                <div>
+                  <div style={statLabel}>Richtig erkannt</div>
+                  <div className="bingo-mono" style={statValue}>{pairCorrectCount}</div>
                 </div>
               </div>
             </div>
