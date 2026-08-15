@@ -10,15 +10,19 @@ Die Live-Variante (Kursleiterin liest per Zoom vor) scheiterte online an Ausdruc
 
 ## Aktueller Stand: Solo-Prototyp
 
-Ein React-Prototyp mit vier eigenständigen Modi. Alle 78 Wörter haben mittlerweile echte Fotos; fehlt für ein Wort dennoch mal ein Bild, fällt die App automatisch auf ein Platzhalter-Icon zurück:
+Ein React-Prototyp mit fünf eigenständigen Modi. Alle 78 Lautungs-Wörter haben mittlerweile echte Fotos; fehlt für ein Wort dennoch mal ein Bild, fällt die App automatisch auf ein Platzhalter-Icon zurück:
 
 - **🎯 Bingo** — Vollbild-Ziel (nicht nur eine Reihe/Spalte/Diagonale), automatischer oder manueller Kartenaufruf mit Sprachausgabe (Web Speech API), Zeitmessung mit persistentem persönlichem Rekord pro Boardgröße.
 - **🔁 Training** — Endlos-Karussell: Bildvarianten desselben Worts rotieren automatisch, um Begriffssicherheit über einzelne Fotos hinaus aufzubauen (z. B. roter/grüner Pullover = beides "Pullover"). Umschaltbar zwischen Gruppierung nach Lautung (Minimalpaare) und nach Themenfeld.
 - **🧩 Zuordnen** — Wort wird angesagt, passendes Bild wird angetippt, in Dauerschleife ohne Zeitdruck. Mehrere Bildvarianten desselben Worts dürfen gleichzeitig im Raster liegen, da es um korrekte Zuordnung geht, nicht um Eindeutigkeit.
 - **🎧 Minimalpaare** — zwei Wörter aus demselben Lautungs-Set werden als Bild gezeigt, eines wird angesagt, das passende Bild muss angetippt werden. Bewusst ohne Textlabel — reine Hörunterscheidung ähnlich klingender Wörter, nicht Lesen.
+- **🃏 Memory** — trainiert echte Homonyme (gleiche Schreibung, andere Bedeutung, z. B. "die Mutter" = Elternteil vs. Schraubenmutter), eigene kleine Wortkategorie in [`prototypes/solo/data/homonyms.js`](prototypes/solo/data/homonyms.js), getrennt von den 78 Lautungs-Wörtern. Zwei Untermodi:
+  - **Paar finden** — 4 Karten (2×2), 2 davon sind dasselbe Homonym mit unterschiedlicher Bedeutung; müssen nacheinander angeklickt werden, um das Paar zu finden.
+  - **Formen erkennen** — 4 Karten zeigen Bedeutung A (Singular/Plural) und Bedeutung B (Singular/Plural); Audio sagt eine konkrete Form an (als vollständiger, eindeutiger Beispielsatz statt bloßem Wort, da bei manchen Paaren wie Maus/Flügel/Nagel Artikel und Pluralform für beide Bedeutungen identisch sind), die passende Karte muss angetippt werden — trainiert Genus (z. B. bei Kiefer: der Kiefer vs. die Kiefer) und/oder Pluralformen.
 
 Datei: [`prototypes/solo/deutsch-bingo.jsx`](prototypes/solo/deutsch-bingo.jsx)
 Wortdatenbank (Content, getrennt von UI/Gameplay): [`prototypes/solo/data/words.js`](prototypes/solo/data/words.js)
+Homonym-Paare (Memory-Modus): [`prototypes/solo/data/homonyms.js`](prototypes/solo/data/homonyms.js)
 
 ## Content-Modell
 

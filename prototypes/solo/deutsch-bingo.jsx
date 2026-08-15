@@ -12,6 +12,7 @@ import {
   RefreshCw,
 } from "lucide-react";
 import { WORDS, NOMINATIVE_ARTICLE } from "./data/words";
+import { HOMONYMS } from "./data/homonyms";
 
 // Grundform-Anzeige nutzt bewusst den unbestimmten Artikel (ein/eine/ein),
 // nicht den bestimmten: der bestimmte Artikel ist zwar in Sprachlernkontexten
@@ -208,6 +209,27 @@ export default function DeutschBingo() {
   const [pairPlaying, setPairPlaying] = useState(true);
   const [pairTempo, setPairTempo] = useState("mittel");
   const pairTimeoutRef = useRef(null);
+
+  // ---- Memory-Modus State (Homonyme: gleiche Schreibung, andere Bedeutung) ----
+  const [memoryVariant, setMemoryVariant] = useState("paar"); // "paar" | "formen"
+
+  // Untermodus 1: Paar finden (2 von 4 Karten sind dasselbe Homonym)
+  const [memPairCards, setMemPairCards] = useState([]);
+  const [memPairSelectedKeys, setMemPairSelectedKeys] = useState([]);
+  const [memPairWrongKeys, setMemPairWrongKeys] = useState([]);
+  const [memPairScore, setMemPairScore] = useState(0);
+  const memPairTimeoutRef = useRef(null);
+
+  // Untermodus 2: Formen erkennen (Audio → richtige von 4 Formen antippen)
+  const [memFormCards, setMemFormCards] = useState([]);
+  const [memFormTargetKey, setMemFormTargetKey] = useState(null);
+  const [memFormAnnouncedText, setMemFormAnnouncedText] = useState("");
+  const [memFormShakeKey, setMemFormShakeKey] = useState(null);
+  const [memFormFlashKey, setMemFormFlashKey] = useState(null);
+  const [memFormScore, setMemFormScore] = useState(0);
+  const [memFormPlaying, setMemFormPlaying] = useState(true);
+  const [memFormTempo, setMemFormTempo] = useState("mittel");
+  const memFormTimeoutRef = useRef(null);
 
   // deutsche Stimme laden, sobald verfügbar
   useEffect(() => {
@@ -516,6 +538,104 @@ export default function DeutschBingo() {
     speakWord(pairAnnouncedText, TEMPO[pairTempo].rate);
   };
 
+  // ---- Memory Untermodus 1: Paar finden ----
+  // 2 Karten sind dieselbe Homonym-Bedeutung(-spaar) — 2 Ablenker kommen aus
+  // dem normalen Wortschatz (data/words.js), der auch WordVisual-kompatibel
+  // ist (gleiche images.singular/plural-Form wie Homonym-Bedeutungen).
+  const startMemPairRound = useCallback(() => {
+    const homPair = HOMONYMS[Math.floor(Math.random() * HOMONYMS.length)];
+    const [meaningA, meaningB] = homPair.meanings;
+    const decoys = shuffle(WORDS).slice(0, 2);
+    const cards = shuffle([
+      { key: `t1-${meaningA.id}`, word: meaningA, isTarget: true },
+      { key: `t2-${meaningB.id}`, word: meaningB, isTarget: true },
+      { key: `d1-${decoys[0].id}`, word: decoys[0], isTarget: false },
+      { key: `d2-${decoys[1].id}`, word: decoys[1], isTarget: false },
+    ]);
+    setMemPairCards(cards);
+    setMemPairSelectedKeys([]);
+    setMemPairWrongKeys([]);
+  }, []);
+
+  useEffect(() => {
+    if (mode === "memory" && memoryVariant === "paar" && memPairCards.length === 0) startMemPairRound();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mode, memoryVariant]);
+
+  useEffect(() => () => clearTimeout(memPairTimeoutRef.current), []);
+
+  const handleMemPairClick = (card) => {
+    if (memPairSelectedKeys.includes(card.key) || memPairWrongKeys.length) return;
+    if (memPairSelectedKeys.length === 0) {
+      setMemPairSelectedKeys([card.key]);
+      return;
+    }
+    const firstCard = memPairCards.find((c) => c.key === memPairSelectedKeys[0]);
+    if (firstCard.isTarget && card.isTarget) {
+      setMemPairSelectedKeys([firstCard.key, card.key]);
+      setMemPairScore((s) => s + 1);
+      clearTimeout(memPairTimeoutRef.current);
+      memPairTimeoutRef.current = setTimeout(startMemPairRound, 1600);
+    } else {
+      setMemPairWrongKeys([firstCard.key, card.key]);
+      setTimeout(() => {
+        setMemPairWrongKeys([]);
+        setMemPairSelectedKeys([]);
+      }, 500);
+    }
+  };
+
+  // ---- Memory Untermodus 2: Formen erkennen ----
+  // 4 Karten: beide Bedeutungen je Singular + Plural. Ansage nutzt einen
+  // eigens verfassten Satz pro Form (nicht nur das Wort), weil bei manchen
+  // Paaren Artikel UND Pluralform für beide Bedeutungen identisch sind
+  // (Maus, Flügel, Nagel) — nur der Kontext verrät dann die Bedeutung.
+  const startMemFormRound = useCallback(() => {
+    const homPair = HOMONYMS[Math.floor(Math.random() * HOMONYMS.length)];
+    const [meaningA, meaningB] = homPair.meanings;
+    const cards = shuffle([
+      { key: "a-sg", meaning: meaningA, plural: false },
+      { key: "b-sg", meaning: meaningB, plural: false },
+      { key: "a-pl", meaning: meaningA, plural: true },
+      { key: "b-pl", meaning: meaningB, plural: true },
+    ]);
+    setMemFormCards(cards);
+    const target = cards[Math.floor(Math.random() * cards.length)];
+    setMemFormTargetKey(target.key);
+    const text = target.plural ? target.meaning.sentencePlural : target.meaning.sentenceSingular;
+    setMemFormAnnouncedText(text);
+    if (ttsOn) speakWord(text, TEMPO[memFormTempo].rate);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ttsOn, memFormTempo]);
+
+  useEffect(() => {
+    if (mode === "memory" && memoryVariant === "formen" && memFormCards.length === 0) startMemFormRound();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mode, memoryVariant]);
+
+  useEffect(() => () => clearTimeout(memFormTimeoutRef.current), []);
+
+  const handleMemFormClick = (card) => {
+    if (!memFormPlaying) return;
+    if (card.key === memFormTargetKey) {
+      setMemFormFlashKey(card.key);
+      setMemFormScore((s) => s + 1);
+      clearTimeout(memFormTimeoutRef.current);
+      memFormTimeoutRef.current = setTimeout(() => {
+        setMemFormFlashKey(null);
+        startMemFormRound();
+      }, Math.round(TEMPO[memFormTempo].ms * 0.5));
+    } else {
+      setMemFormShakeKey(card.key);
+      setTimeout(() => setMemFormShakeKey(null), 400);
+    }
+  };
+
+  const repeatMemForm = () => {
+    if (!ttsOn || !memFormAnnouncedText) return;
+    speakWord(memFormAnnouncedText, TEMPO[memFormTempo].rate);
+  };
+
   const currentWord = history[0];
 
   return (
@@ -554,6 +674,7 @@ export default function DeutschBingo() {
               {mode === "training" && "Endlos-Karussell — Bilder wechseln automatisch die Variante, damit der Begriff sitzt statt nur ein Foto."}
               {mode === "match" && "Ansage + Antippen, in Dauerschleife — mehrere Bilder desselben Worts dürfen gleichzeitig daliegen, gesucht ist die richtige Zuordnung."}
               {mode === "paare" && "Zwei ähnlich klingende Wörter aus demselben Set, eines wird angesagt — reine Hörunterscheidung, kein Wort steht als Text da."}
+              {mode === "memory" && "Homonyme: gleiche Schreibung, andere Bedeutung — z. B. die Mutter (Elternteil) und die Mutter (Schraubenmutter)."}
             </p>
           </div>
           <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
@@ -580,6 +701,12 @@ export default function DeutschBingo() {
               style={{ ...pill, background: mode === "paare" ? "#23273A" : "#FFFFFF", color: mode === "paare" ? "#fff" : "#23273A", borderColor: mode === "paare" ? "#23273A" : "#DDD6C7" }}
             >
               🎧 Minimalpaare
+            </button>
+            <button
+              onClick={() => setMode("memory")}
+              style={{ ...pill, background: mode === "memory" ? "#23273A" : "#FFFFFF", color: mode === "memory" ? "#fff" : "#23273A", borderColor: mode === "memory" ? "#23273A" : "#DDD6C7" }}
+            >
+              🃏 Memory
             </button>
           </div>
         </header>
@@ -1183,6 +1310,203 @@ export default function DeutschBingo() {
                 </div>
               </div>
             </div>
+          </div>
+        )}
+
+        {mode === "memory" && (
+          /* ---------------- Memory-Modus: Homonyme ---------------- */
+          <div>
+            <div style={{ display: "flex", gap: 6, marginBottom: 16 }}>
+              <button
+                onClick={() => setMemoryVariant("paar")}
+                style={{ ...pill, background: memoryVariant === "paar" ? "#8B5FBF" : "#FFFFFF", color: memoryVariant === "paar" ? "#fff" : "#23273A", borderColor: memoryVariant === "paar" ? "#8B5FBF" : "#DDD6C7" }}
+              >
+                Paar finden
+              </button>
+              <button
+                onClick={() => setMemoryVariant("formen")}
+                style={{ ...pill, background: memoryVariant === "formen" ? "#8B5FBF" : "#FFFFFF", color: memoryVariant === "formen" ? "#fff" : "#23273A", borderColor: memoryVariant === "formen" ? "#8B5FBF" : "#DDD6C7" }}
+              >
+                Formen erkennen
+              </button>
+            </div>
+
+            {memoryVariant === "paar" && (
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 24 }}>
+                <div style={{ flex: "1 1 420px" }}>
+                  <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 16, maxWidth: 420 }}>
+                    {memPairCards.map((card) => {
+                      const selected = memPairSelectedKeys.includes(card.key);
+                      const wrong = memPairWrongKeys.includes(card.key);
+                      const solved = selected && memPairSelectedKeys.length === 2 && !wrong;
+                      return (
+                        <div key={card.key} style={{ containerType: "inline-size", aspectRatio: "1 / 1" }}>
+                          <button
+                            onClick={() => handleMemPairClick(card)}
+                            className={`train-cell${wrong ? " shake" : ""}${solved ? " pop" : ""}`}
+                            style={{
+                              position: "relative",
+                              width: "100%",
+                              height: "100%",
+                              borderRadius: 14,
+                              border: `8cqw solid ${selected && !wrong ? "#E8A93B" : GENUS_COLOR[card.word.genus]}`,
+                              background: "#FFFFFF",
+                              overflow: "hidden",
+                              cursor: "pointer",
+                              padding: 0,
+                            }}
+                            title="Antippen"
+                          >
+                            <WordVisual word={card.word} fill iconColor="#B9B4A6" />
+                            {solved && (
+                              <div
+                                style={{
+                                  position: "absolute",
+                                  inset: 4,
+                                  borderRadius: 8,
+                                  background: `${GENUS_COLOR[card.word.genus]}CC`,
+                                  display: "flex",
+                                  alignItems: "center",
+                                  justifyContent: "center",
+                                }}
+                              >
+                                <span style={{ color: "#FFFFFF", fontSize: 20, fontWeight: 700 }}>{card.word.word}</span>
+                              </div>
+                            )}
+                          </button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                  <p style={{ marginTop: 16, fontSize: 12, color: "#8A8570", maxWidth: 420 }}>
+                    2 der 4 Bilder heißen exakt gleich, obwohl sie ganz unterschiedliche Dinge zeigen — genau diese
+                    zwei nacheinander antippen.
+                  </p>
+                </div>
+
+                <div style={{ flex: "1 1 260px", display: "flex", flexDirection: "column", gap: 14 }}>
+                  <div style={{ background: "#23273A", borderRadius: 14, padding: 18, color: "#F6F1E7" }}>
+                    <div style={{ fontSize: 11, letterSpacing: 1, opacity: 0.6, textTransform: "uppercase" }}>Aufgabe</div>
+                    <div style={{ fontSize: 13, marginTop: 6, opacity: 0.85 }}>
+                      Welche zwei Bilder tragen denselben Wortnamen? Erst das eine, dann das andere antippen.
+                    </div>
+                  </div>
+
+                  <button onClick={startMemPairRound} style={btnGhost}>
+                    <RotateCcw size={14} /> Neue Karten
+                  </button>
+
+                  <div style={statCard}>
+                    <Trophy size={15} color="#E8A93B" />
+                    <div>
+                      <div style={statLabel}>Paare gefunden</div>
+                      <div className="bingo-mono" style={statValue}>{memPairScore}</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {memoryVariant === "formen" && (
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 24 }}>
+                <div style={{ flex: "1 1 420px" }}>
+                  <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 16, maxWidth: 420 }}>
+                    {memFormCards.map((card) => {
+                      const flashed = memFormFlashKey === card.key;
+                      return (
+                        <div key={card.key} style={{ containerType: "inline-size", aspectRatio: "1 / 1" }}>
+                          <button
+                            onClick={() => handleMemFormClick(card)}
+                            className={`train-cell${memFormShakeKey === card.key ? " shake" : ""}${flashed ? " pop" : ""}`}
+                            style={{
+                              position: "relative",
+                              width: "100%",
+                              height: "100%",
+                              borderRadius: 14,
+                              border: "8cqw solid #8A8570",
+                              background: "#FFFFFF",
+                              overflow: "hidden",
+                              cursor: "pointer",
+                              padding: 0,
+                            }}
+                            title="Antippen, wenn das die Ansage war"
+                          >
+                            <WordVisual word={card.meaning} plural={card.plural} fill iconColor="#B9B4A6" />
+                            {flashed && (
+                              <div
+                                style={{
+                                  position: "absolute",
+                                  inset: 4,
+                                  borderRadius: 8,
+                                  background: "#8A8570CC",
+                                  display: "flex",
+                                  alignItems: "center",
+                                  justifyContent: "center",
+                                }}
+                              >
+                                <span style={{ color: "#FFFFFF", fontSize: 30 }}>✓</span>
+                              </div>
+                            )}
+                          </button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                  <p style={{ marginTop: 16, fontSize: 12, color: "#8A8570", maxWidth: 420 }}>
+                    Alle vier Karten zeigen dasselbe Wort — zwei Bedeutungen × Singular/Plural. Die Rahmenfarbe
+                    verrät bewusst kein Genus, nur der gehörte Satz zählt.
+                  </p>
+                </div>
+
+                <div style={{ flex: "1 1 260px", display: "flex", flexDirection: "column", gap: 14 }}>
+                  <div style={{ background: "#23273A", borderRadius: 14, padding: 18, color: "#F6F1E7" }}>
+                    <div style={{ fontSize: 11, letterSpacing: 1, opacity: 0.6, textTransform: "uppercase" }}>Aufgabe</div>
+                    <div style={{ fontSize: 13, marginTop: 6, opacity: 0.85 }}>
+                      Genau hinhören: welche Bedeutung, Singular oder Plural?
+                    </div>
+                  </div>
+
+                  <div style={{ display: "flex", gap: 8 }}>
+                    <button onClick={() => setMemFormPlaying((p) => !p)} style={btnPrimary}>
+                      {memFormPlaying ? <Pause size={16} /> : <Play size={16} />}
+                      {memFormPlaying ? "Pause" : "Weiter"}
+                    </button>
+                    <button onClick={repeatMemForm} style={btnIcon} title="Wiederholen">
+                      <Repeat size={16} />
+                    </button>
+                  </div>
+
+                  <div>
+                    <div style={labelStyle}>Tempo (Pause nach richtiger Antwort)</div>
+                    <div style={{ display: "flex", gap: 6 }}>
+                      {Object.entries(TEMPO).map(([key, t]) => (
+                        <button key={key} onClick={() => setMemFormTempo(key)} style={{ ...pill, background: memFormTempo === key ? "#E8A93B" : "#FFFFFF", borderColor: memFormTempo === key ? "#E8A93B" : "#DDD6C7" }}>
+                          {t.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <label style={toggleRow}>
+                    <input type="checkbox" checked={ttsOn} onChange={(e) => setTtsOn(e.target.checked)} />
+                    {ttsOn ? <Volume2 size={15} /> : <VolumeX size={15} />}
+                    Wörter vorlesen (Sprachausgabe)
+                  </label>
+
+                  <button onClick={startMemFormRound} style={btnGhost}>
+                    <RotateCcw size={14} /> Neues Set
+                  </button>
+
+                  <div style={statCard}>
+                    <Trophy size={15} color="#E8A93B" />
+                    <div>
+                      <div style={statLabel}>Richtig erkannt</div>
+                      <div className="bingo-mono" style={statValue}>{memFormScore}</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         )}
       </div>

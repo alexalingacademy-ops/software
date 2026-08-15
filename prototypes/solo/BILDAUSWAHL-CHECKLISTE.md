@@ -318,3 +318,53 @@ Buch/Dach/Tag (Tuch hat keine Plural-Aufnahme).
   - [ ] Variante A
   - [ ] Variante B — z. B. andere Farbe
   - ⚠ Nicht Musikgruppe oder Buchband — konkretes Band/Schleifenmaterial
+
+## Homonyme (Memory-Modus)
+
+Eigene kleine Wortkategorie in [`data/homonyms.js`](data/homonyms.js), getrennt von den 78
+Lautungs-Wörtern oben — gleiche Schreibung, unterschiedliche Bedeutung (z. B. "die Mutter" =
+Elternteil vs. Schraubenmutter). Jede Bedeutung hat eine eigene id und damit einen eigenen
+Bildordner nach demselben Muster: `images/{meaningId}/` (Singular), `images/{meaningId}-plural/`
+(Plural). Bei jedem Paar auf **maximale visuelle Unterscheidbarkeit** zwischen den beiden
+Bedeutungen achten — das ist hier der eigentliche Lerneffekt (Genus/Plural-Unterscheidung).
+
+- [x] **Mutter — Elternteil** (f, Mütter) — `images/mutter-eltern/` (3 Varianten) · Plural `images/mutter-eltern-plural/`
+- [x] **Mutter — Schraubenmutter** (f, Muttern) — `images/mutter-schraube/` · Plural `images/mutter-schraube-plural/`
+  - Einziges verfügbares Singular-Foto zeigt Schraube+Mutter als Paar (Deko-Figuren), nicht nur die Mutter allein — funktioniert, aber ein sauberes Einzelfoto wäre besser, falls sich eins findet
+- [x] **Kiefer — Kieferknochen** (m, Kiefer) — `images/kiefer-kinn/` (2 Varianten) · kein Plural-Bild
+- [x] **Kiefer — Nadelbaum** (f, Kiefern) — `images/kiefer-baum/` · Plural `images/kiefer-baum-plural/`
+- [x] **Bank — Sitzbank** (f, Bänke) — `images/bank-sitz/` (3 Varianten) · kein Plural-Bild
+- [x] **Bank — Geldinstitut** (f, Banken) — `images/bank-geld/` (4 Varianten) · kein Plural-Bild
+  - Ersatz übrig (nicht verwendet): *euro-sculpture-city-frankfurt.jpg*, 2× *people-withdrawal...jpg*
+- [ ] **Leiter — Führungsperson** (m, Leiter) — `images/leiter-person/` — Suchbegriffe: manager, Abteilungsleiter, boss
+  - Im aktuellen Foto-Batch war kein passendes Bild dabei (nur Leiter=Treppe-Fotos)
+- [x] **Leiter — Steigleiter** (f, Leitern) — `images/leiter-treppe/` (5 Varianten) · Plural `images/leiter-treppe-plural/`
+  - Ersatz übrig: *close-up-worker-standing-ladder.jpg*, *construction-worker-standing-dirty-ladder.jpg*
+- [ ] **Steuer — Abgabe an den Staat** (f, Steuern) — `images/steuer-abgabe/` — Suchbegriffe: tax form, Steuererklärung
+  - Im aktuellen Foto-Batch nicht dabei
+- [ ] **Steuer — Lenkrad/Ruder** (n, Steuer) — `images/steuer-lenkrad/` — Suchbegriffe: steering wheel, ship's wheel, Lenkrad
+  - Im aktuellen Foto-Batch nicht dabei
+- [x] **See — Binnengewässer** (m, Seen) — `images/see-gewaesser/` · kein Plural-Bild
+- [x] **See — Meer** (f, Seen) — `images/see-meer/` (3 Varianten) · kein Plural-Bild
+  - Ersatz übrig: *sea-with-waves-cloudy-sky.jpg*
+- [x] **Maus — Tier** (f, Mäuse) — `images/maus-tier/` · kein Plural-Bild
+- [x] **Maus — Computermaus** (f, Mäuse) — `images/maus-computer/` (3 Varianten) · kein Plural-Bild
+- [x] **Schloss — Türverschluss** (n, Schlösser) — wiederverwendet `images/schloss/` (bereits vorhanden, Set 2)
+- [x] **Schloss — Palast/Herrschaftshaus** (n, Schlösser) — wiederverwendet `images/burg/` (Ordnername historisch, zeigt aber Schloss-/Palastfotos); Plural `images/burg-plural/` noch offen
+  - Echtes Homonym trotz identischer Grammatik (beide neutrum, Plural "Schlösser") — Unterscheidung läuft über den Beispielsatz, genau wie bei Maus/Flügel/Nagel
+- [x] **Schild — Hinweisschild** (n, Schilder) — `images/schild-hinweis/` (5 Varianten) · kein Plural-Bild
+  - Ersatz übrig: *shot-bear-sign-mountains.jpg*, *orchard-sign-singapore.jpg*, *road-sign-scenic-overlook.jpg*, *signboard-with-text-park-closes-dusk.jpg*
+- [x] **Schild — Ritterschild** (m, Schilde) — `images/schild-ritter/` (4 Varianten) · Plural `images/schild-ritter-plural/` (Icon-Set mit 25 Schilden)
+  - Ersatz übrig: *3d-illustration-set-green-red-shield.jpg*, *antivirus-digital-defender...jpg*
+- [x] **Flügel — Vogel-/Gebäudeflügel** (m, Flügel) — `images/fluegel-vogel/` (3 Varianten) · kein Plural-Bild
+  - Ersatz übrig: *beautiful-young-girl-with-long-red-hair-black-wings-dark-room.jpg*, *young-man-with-wings.jpg*
+- [x] **Flügel — Konzertflügel** (m, Flügel) — `images/fluegel-klavier/` (2 Varianten) · kein Plural-Bild
+- [x] **Nagel — Werkzeug/Baumaterial** (m, Nägel) — `images/nagel-werkzeug/` · Plural `images/nagel-werkzeug-plural/` (2 Varianten)
+- [x] **Nagel — Fingernagel** (m, Nägel) — `images/nagel-finger/` (2 Varianten) · Plural `images/nagel-finger-plural/`
+  - Ersatz übrig: *white-spots-vertical-ridges-fingernails...jpg* (medizinisches Motiv, bewusst nicht verwendet)
+- [x] **Tor — Fußballtor** (n, Tore) — `images/tor-fussball/` (3 Varianten)
+  - Plural bewusst als *erzielte Tore* (Spielstand) statt mehrerer Tor-Objekte gedacht — noch ohne Bild, siehe unten
+- [ ] **Tor — Fußballtor, Plural** — `images/tor-fussball-plural/` — Suchbegriffe: Spielstand-Anzeigetafel, scoreboard, soccer scoreboard
+  - Im aktuellen Foto-Batch nicht dabei
+- [x] **Tor — Garagentor** (n, Tore) — `images/tor-garage/` (2 Varianten) · Plural `images/tor-garage-plural/`
+  - Beide Bedeutungen grammatisch identisch (neutrum, Plural "Tore") — Unterscheidung läuft über den Beispielsatz, wie bei Maus/Schloss/Flügel/Nagel
